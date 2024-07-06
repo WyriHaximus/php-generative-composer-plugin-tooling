@@ -1,15 +1,3 @@
-# php-generative-composer-plugin-tooling
-
-Tooling for creating generative Composer Plugins
-
-![Continuous Integration](https://github.com/wyrihaximus/php-generative-composer-plugin-tooling/workflows/Continuous%20Integration/badge.svg)
-[![Latest Stable Version](https://poser.pugx.org/wyrihaximus/generative-composer-plugin-tooling/v/stable.png)](https://packagist.org/packages/wyrihaximus/generative-composer-plugin-tooling)
-[![Total Downloads](https://poser.pugx.org/wyrihaximus/generative-composer-plugin-tooling/downloads.png)](https://packagist.org/packages/wyrihaximus/generative-composer-plugin-tooling/stats)
-[![Type Coverage](https://shepherd.dev/github/WyriHaximus/php-generative-composer-plugin-tooling/coverage.svg)](https://shepherd.dev/github/WyriHaximus/php-generative-composer-plugin-tooling)
-[![License](https://poser.pugx.org/wyrihaximus/generative-composer-plugin-tooling/license.png)](https://packagist.org/packages/wyrihaximus/generative-composer-plugin-tooling)
-
-# License
-
 The MIT License (MIT)
 
 Copyright (c) 2024 Cees-Jan Kiewiet
