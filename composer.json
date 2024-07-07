@@ -1,0 +1,51 @@
+{
+  "name": "wyrihaximus/generative-composer-plugin-tooling",
+  "description": "\ud83d\udc26\u200d\ud83d\udd25 Generative Composer Plugin Tooling",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Cees-Jan Kiewiet",
+      "email": "ceesjank@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.2"
+  },
+  "require-dev": {
+    "wyrihaximus/test-utilities": "^6.0.9"
+  },
+  "autoload": {
+    "psr-4": {
+      "WyriHaximus\\Composer\\GenerativePluginTooling\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "composer-unused/composer-unused-plugin": true,
+      "composer/package-versions-deprecated": true,
+      "dealerdirect/phpcodesniffer-composer-installer": true,
+      "ergebnis/composer-normalize": true,
+      "icanhazstring/composer-unused": true,
+      "infection/extension-installer": true
+    },
+    "platform": {
+      "php": "8.2.13"
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "composer normalize",
+      "composer update --lock --no-scripts"
+    ],
+    "post-update-cmd": [
+      "composer normalize",
+      "composer update --lock --no-scripts"
+    ]
+  }
+}
