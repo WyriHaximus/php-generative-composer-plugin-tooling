@@ -9,7 +9,9 @@
     }
   ],
   "require": {
-    "php": "^8.2"
+    "php": "^8.2",
+    "composer-plugin-api": "^2",
+    "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
     "wyrihaximus/test-utilities": "^6.0.9"
