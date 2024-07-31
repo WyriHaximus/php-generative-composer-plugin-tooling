@@ -6,7 +6,10 @@ namespace WyriHaximus\Composer\GenerativePluginTooling;
 
 use Composer\Composer;
 use Composer\Config;
+use Composer\InstalledVersions;
 use Composer\IO\IOInterface;
+use Composer\Package\Loader\ArrayLoader;
+use Composer\Package\Loader\JsonLoader;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use Exception;
@@ -57,7 +60,7 @@ final class GenerativePluginExecutioner
 
         $unfilteredPackages = self::autoloadablePackages(
             $composer->getPackage(),
-            ...$composer->getRepositoryManager()->getLocalRepository()->getCanonicalPackages(),
+            ...self::loadVendorDirPackages($vendorDir),
         );
         $packages           =  [];
         foreach ($unfilteredPackages as $package) {
@@ -235,5 +238,22 @@ final class GenerativePluginExecutioner
         }
 
         yield from Lister::classesInFiles($path);
+    }
+
+    /**
+     * @return iterable<PackageInterface>
+     */
+    private static function loadVendorDirPackages(string $vendorDir): iterable
+    {
+        $loader = new JsonLoader(new ArrayLoader());
+
+        /**
+         * @var \SplFileInfo $node
+         */
+        foreach (new \GlobIterator($vendorDir . '/*/*/composer.json', \FilesystemIterator::KEY_AS_FILENAME) as $node) {
+            $json = json_decode(file_get_contents($node->getFilename()), true);
+            $json['version'] = InstalledVersions::getVersion($json['name']);
+            yield $loader->load(json_encode($json));
+        }
     }
 }
