@@ -9,7 +9,7 @@
     }
   ],
   "require": {
-    "php": "^8.2"
+    "php": "^8.3.12"
   },
   "require-dev": {
     "wyrihaximus/test-utilities": "^6.0.9"
