@@ -6,27 +6,40 @@ namespace WyriHaximus\Composer\GenerativePluginTooling;
 
 use Composer\Composer;
 use Composer\Config;
+use Composer\InstalledVersions;
 use Composer\IO\IOInterface;
+use Composer\Package\Loader\ArrayLoader;
+use Composer\Package\Loader\JsonLoader;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
 use Exception;
+use FilesystemIterator;
+use GlobIterator;
 use Roave\BetterReflection\BetterReflection;
 use Roave\BetterReflection\Reflection\ReflectionClass;
 use Roave\BetterReflection\Reflector\DefaultReflector;
 use Roave\BetterReflection\Reflector\Exception\IdentifierNotFound;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Factory\MakeLocatorForComposerJsonAndInstalledJson;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Psr\Exception\InvalidPrefixMapping;
+use SplFileInfo;
 use WyriHaximus\Lister;
 
 use function array_key_exists;
+use function assert;
 use function count;
 use function dirname;
 use function explode;
 use function file_exists;
+use function is_array;
 use function is_dir;
 use function is_file;
 use function is_string;
+use function microtime;
+use function round;
 use function rtrim;
+use function Safe\file_get_contents;
+use function Safe\json_decode;
+use function Safe\json_encode;
 use function Safe\mkdir;
 use function sprintf;
 
@@ -36,11 +49,8 @@ final class GenerativePluginExecutioner
 {
     public static function execute(Composer $composer, IOInterface $io, GenerativePlugin $plugin): void
     {
-        $start    = microtime(true);
-        $vendorDir = $composer->getConfig()->get('vendor-dir');
-        if (! is_string($vendorDir) || ! file_exists($vendorDir)) {
-            throw new Exception('vendor-dir most be a string'); // @phpstan-ignore-line
-        }
+        $start     = microtime(true);
+        $vendorDir = self::getVendorDir($composer);
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . $plugin::log(LogStages::Init));
 
@@ -50,14 +60,16 @@ final class GenerativePluginExecutioner
                 $packageFilters[] = $filter;
             }
 
-            if ($filter instanceof ClassFilter) {
-                $classFilters[] = $filter;
+            if (! ($filter instanceof ClassFilter)) {
+                continue;
             }
+
+            $classFilters[] = $filter;
         }
 
         $unfilteredPackages = self::autoloadablePackages(
             $composer->getPackage(),
-            ...$composer->getRepositoryManager()->getLocalRepository()->getCanonicalPackages(),
+            ...self::loadVendorDirPackages($vendorDir),
         );
         $packages           =  [];
         foreach ($unfilteredPackages as $package) {
@@ -80,6 +92,7 @@ final class GenerativePluginExecutioner
                     continue 2;
                 }
             }
+
             $classes[] = $class;
         }
 
@@ -134,7 +147,11 @@ final class GenerativePluginExecutioner
         }
     }
 
-    /** @return iterable<ReflectionClass> */
+    /**
+     * @param non-empty-string $vendorDir
+     *
+     * @return iterable<ReflectionClass>
+     */
     private static function listClassesInPackages(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, PackageInterface ...$packages): iterable
     {
         foreach ($packages as $package) {
@@ -154,7 +171,7 @@ final class GenerativePluginExecutioner
                     }
 
                     $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $packageName . DIRECTORY_SEPARATOR . $path, '/');
-                    if (! file_exists($fileName)) {
+                    if ($fileName === '' || ! file_exists($fileName)) {
                         continue;
                     }
 
@@ -172,7 +189,7 @@ final class GenerativePluginExecutioner
                 }
 
                 $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $packageName . DIRECTORY_SEPARATOR . $path, '/');
-                if (! file_exists($fileName)) {
+                if ($fileName === '' || ! file_exists($fileName)) {
                     continue;
                 }
 
@@ -181,22 +198,17 @@ final class GenerativePluginExecutioner
         }
     }
 
-    /** @return iterable<ReflectionClass> */
+    /**
+     * @param non-empty-string $vendorDir
+     * @param non-empty-string $path
+     *
+     * @return iterable<ReflectionClass>
+     */
     private static function listReflectedClassesInPaths(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, string $path): iterable
     {
-        retry:
-        try {
-            $classReflector = new DefaultReflector(
-                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), (new BetterReflection())->astLocator()),
-            );
-        } catch (InvalidPrefixMapping $invalidPrefixMapping) {
-            mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
-            goto retry;
-        }
-
+        $classReflector = self::createClassReflector($vendorDir);
         foreach (self::listClassesInPaths($path) as $class) {
             try {
-                /** @phpstan-ignore-next-line */
                 yield (static function (ReflectionClass $reflectionClass): ReflectionClass {
                     /**
                      * Unit tests will fail if this line isn't here, getMethods will also do the trick
@@ -223,7 +235,11 @@ final class GenerativePluginExecutioner
         }
     }
 
-    /** @return iterable<string> */
+    /**
+     * @param non-empty-string $path
+     *
+     * @return iterable<string>
+     */
     private static function listClassesInPaths(string $path): iterable
     {
         if (is_dir($path)) {
@@ -235,5 +251,63 @@ final class GenerativePluginExecutioner
         }
 
         yield from Lister::classesInFiles($path);
+    }
+
+    /**
+     * @param non-empty-string $vendorDir
+     *
+     * @return iterable<PackageInterface>
+     */
+    private static function loadVendorDirPackages(string $vendorDir): iterable
+    {
+        $loader = new JsonLoader(new ArrayLoader());
+
+        foreach (new GlobIterator($vendorDir . '/*/*/composer.json', FilesystemIterator::KEY_AS_FILENAME) as $node) {
+            assert($node instanceof SplFileInfo);
+            $composerJson = file_get_contents($node->getFilename());
+
+            $json = json_decode($composerJson, true);
+            if (! is_array($json)) {
+                continue;
+            }
+
+            if (! array_key_exists('name', $json)) {
+                continue;
+            }
+
+            $json['version'] = InstalledVersions::getVersion($json['name']);
+
+            $jsonString = json_encode($json);
+
+            yield $loader->load($jsonString);
+        }
+    }
+
+    /** @param non-empty-string $vendorDir */
+    private static function createClassReflector(string $vendorDir): DefaultReflector
+    {
+        retry:
+        try {
+            $reflector = new DefaultReflector(
+                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), (new BetterReflection())->astLocator()),
+            );
+        } catch (InvalidPrefixMapping $invalidPrefixMapping) {
+            mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
+            goto retry;
+        }
+
+        /** @phpstan-ignore-next-line */
+        return $reflector;
+    }
+
+    /** @return non-empty-string */
+    private static function getVendorDir(Composer $composer): string
+    {
+        $vendorDir = $composer->getConfig()->get('vendor-dir');
+        if (! is_string($vendorDir) || $vendorDir === '' || ! file_exists($vendorDir)) {
+            throw new Exception('vendor-dir most be a string'); // @phpstan-ignore-line
+        }
+
+        return $vendorDir;
     }
 }
