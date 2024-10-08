@@ -74,6 +74,7 @@ final class GenerativePluginExecutioner
         $packages           =  [];
         foreach ($unfilteredPackages as $package) {
             foreach ($packageFilters as $packageFilter) {
+                /** @psalm-suppress InvalidArgument Go home psalm you're drunk */
                 if (! $packageFilter($package)) {
                     continue;
                 }
@@ -88,6 +89,7 @@ final class GenerativePluginExecutioner
         $classes           =  [];
         foreach ($unfilteredClasses as $class) {
             foreach ($classFilters as $classFilter) {
+                /** @psalm-suppress InvalidArgument Go home psalm you're drunk */
                 if (! $classFilter($class)) {
                     continue 2;
                 }
@@ -99,12 +101,14 @@ final class GenerativePluginExecutioner
         $items = [];
         foreach ($classes as $class) {
             foreach ($plugin->collectors() as $collector) {
+                /** @psalm-suppress InvalidOperand */
                 $items = [...$items, ...$collector->collect($class)];
             }
         }
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . sprintf($plugin::log(LogStages::Collected), count($items)));
 
+        /** @psalm-suppress NoValue */
         $plugin->compile(self::locateRootPackageInstallPath($plugin, $composer->getConfig(), $composer->getPackage()), ...$items);
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . sprintf($plugin::log(LogStages::Completion), round(microtime(true) - $start, 2)));
@@ -275,6 +279,7 @@ final class GenerativePluginExecutioner
                 continue;
             }
 
+            /** @psalm-suppress MixedArgument */
             $json['version'] = InstalledVersions::getVersion($json['name']);
 
             $jsonString = json_encode($json);
@@ -292,12 +297,14 @@ final class GenerativePluginExecutioner
                 (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), (new BetterReflection())->astLocator()),
             );
         } catch (InvalidPrefixMapping $invalidPrefixMapping) {
-//            echo $invalidPrefixMapping;
             mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
             goto retry;
         }
 
-        /** @phpstan-ignore-next-line */
+        /**
+         * @psalm-suppress PossiblyUndefinedVariable
+         * @phpstan-ignore-next-line
+         */
         return $reflector;
     }
 
