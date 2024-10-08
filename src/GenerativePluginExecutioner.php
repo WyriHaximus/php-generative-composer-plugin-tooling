@@ -292,6 +292,7 @@ final class GenerativePluginExecutioner
                 (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), (new BetterReflection())->astLocator()),
             );
         } catch (InvalidPrefixMapping $invalidPrefixMapping) {
+//            echo $invalidPrefixMapping;
             mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
             goto retry;
         }
