@@ -14,11 +14,14 @@ use Composer\Repository\RepositoryManager;
 use Mockery;
 use Symfony\Component\Console\Output\StreamOutput;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePluginExecutioner;
+use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
 use WyriHaximus\TestUtilities\TestCase;
 
 use function fseek;
 use function Safe\fopen;
+use function Safe\json_encode;
 use function Safe\stream_get_contents;
+use function usort;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -79,7 +82,7 @@ final class GenerativePluginExecutionerTest extends TestCase
 
         $output = $io->output();
 
-        self::assertEquals([
+        $items = [
             new Item(
                 'WyriHaximus\\Broadcast\\Dummy\\Event',
                 'WyriHaximus\\Broadcast\\Dummy\\Listener',
@@ -115,11 +118,21 @@ final class GenerativePluginExecutionerTest extends TestCase
                 false,
                 false,
             ),
-        ], $plugin->items);
+        ];
+
+        self::assertEquals([...self::sortItems(...$items)], [...self::sortItems(...$plugin->items)]);
 
         self::assertStringContainsString('<info>wyrihaximus/broadcast:</info> Locating listeners', $output);
         self::assertStringContainsString('<info>wyrihaximus/broadcast:</info> Found 5 listener(s)', $output);
         self::assertStringContainsString('<error>wyrihaximus/broadcast:</error> An error occurred: Cannot reflect "<fg=cyan>WyriHaximus\Broadcast\Dummy\BrokenAsyncListener</>": <fg=yellow>Roave\BetterReflection\Reflection\ReflectionClass "WyriHaximus\Broadcast\Contracts\AsyncListener" could not be found in the located source</>', $output);
         self::assertStringContainsString('<info>wyrihaximus/broadcast:</info> Generated static abstract listeners provider in', $output);
+    }
+
+    /** @return iterable<ItemContract> */
+    private static function sortItems(ItemContract ...$items): iterable
+    {
+        usort($items, static fn (ItemContract $a, ItemContract $b): int => json_encode($a) <=> json_encode($b));
+
+        yield from $items;
     }
 }
