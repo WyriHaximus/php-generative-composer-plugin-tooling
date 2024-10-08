@@ -1,0 +1,10 @@
+{
+  "name": "wyrihaximus/broadcast",
+  "extra": {
+    "wyrihaximus": {
+      "broadcast": {
+        "has-listeners": true
+      }
+    }
+  }
+}
