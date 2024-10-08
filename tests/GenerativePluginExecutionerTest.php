@@ -120,5 +120,6 @@ final class GenerativePluginExecutionerTest extends TestCase
         self::assertStringContainsString('<info>wyrihaximus/broadcast:</info> Locating listeners', $output);
         self::assertStringContainsString('<info>wyrihaximus/broadcast:</info> Found 5 listener(s)', $output);
         self::assertStringContainsString('<error>wyrihaximus/broadcast:</error> An error occurred: Cannot reflect "<fg=cyan>WyriHaximus\Broadcast\Dummy\BrokenAsyncListener</>": <fg=yellow>Roave\BetterReflection\Reflection\ReflectionClass "WyriHaximus\Broadcast\Contracts\AsyncListener" could not be found in the located source</>', $output);
+        self::assertStringContainsString('<info>wyrihaximus/broadcast:</info> Generated static abstract listeners provider in', $output);
     }
 }
