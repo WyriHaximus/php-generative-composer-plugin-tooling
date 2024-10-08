@@ -14,7 +14,8 @@
     "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
-    "wyrihaximus/test-utilities": "^6.0.9"
+    "thecodingmachine/safe": "^2.5",
+    "wyrihaximus/test-utilities": "^6.0.10"
   },
   "autoload": {
     "psr-4": {

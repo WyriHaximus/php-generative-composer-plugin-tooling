@@ -1,2 +1,9 @@
+parameters:
+	excludePaths:
+		- ../../tests/apps/broadcast/src/Dummy/BrokenAsyncListener.php
+	ergebnis:
+		noExtends:
+			classesAllowedToBeExtended:
+				- Composer\IO\NullIO
 includes:
 	- ../../vendor/wyrihaximus/test-utilities/rules.neon

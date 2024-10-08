@@ -1,0 +1,15 @@
+{
+  "name": "wyrihaximus/broadcast",
+  "autoload": {
+    "psr-4": {
+      "WyriHaximus\\Broadcast\\": "src"
+    }
+  },
+  "extra": {
+    "wyrihaximus": {
+      "broadcast": {
+        "has-listeners": true
+      }
+    }
+  }
+}
