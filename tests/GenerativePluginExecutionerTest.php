@@ -17,10 +17,10 @@ use WyriHaximus\Composer\GenerativePluginTooling\GenerativePluginExecutioner;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
 use WyriHaximus\TestUtilities\TestCase;
 
+use function fopen;
 use function fseek;
-use function Safe\fopen;
-use function Safe\json_encode;
-use function Safe\stream_get_contents;
+use function json_encode;
+use function stream_get_contents;
 use function usort;
 
 use const DIRECTORY_SEPARATOR;
@@ -51,6 +51,7 @@ final class GenerativePluginExecutionerTest extends TestCase
 
             public function __construct()
             {
+                /** @phpstan-ignore-next-line Let it blow */
                 $this->output = new StreamOutput(fopen('php://memory', 'rw'), decorated: false);
             }
 
@@ -58,6 +59,7 @@ final class GenerativePluginExecutionerTest extends TestCase
             {
                 fseek($this->output->getStream(), 0);
 
+                /** @phpstan-ignore-next-line Let it blow */
                 return stream_get_contents($this->output->getStream());
             }
 
