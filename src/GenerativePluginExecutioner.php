@@ -30,17 +30,17 @@ use function count;
 use function dirname;
 use function explode;
 use function file_exists;
+use function file_get_contents;
 use function is_array;
 use function is_dir;
 use function is_file;
 use function is_string;
+use function json_decode;
+use function json_encode;
 use function microtime;
+use function mkdir;
 use function round;
 use function rtrim;
-use function Safe\file_get_contents;
-use function Safe\json_decode;
-use function Safe\json_encode;
-use function Safe\mkdir;
 use function sprintf;
 
 use const DIRECTORY_SEPARATOR;
@@ -270,6 +270,10 @@ final class GenerativePluginExecutioner
             assert($node instanceof SplFileInfo);
             $composerJson = file_get_contents($node->getFilename());
 
+            if ($composerJson === false) {
+                continue;
+            }
+
             $json = json_decode($composerJson, true);
             if (! is_array($json)) {
                 continue;
@@ -283,6 +287,10 @@ final class GenerativePluginExecutioner
             $json['version'] = InstalledVersions::getVersion($json['name']);
 
             $jsonString = json_encode($json);
+
+            if (! is_string($jsonString)) {
+                continue;
+            }
 
             yield $loader->load($jsonString);
         }
