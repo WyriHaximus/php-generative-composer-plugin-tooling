@@ -15,6 +15,7 @@
     "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
+    "wyrihaximus/broadcast": "^2.3.1",
     "wyrihaximus/test-utilities": "^6.0.10"
   },
   "autoload": {
@@ -32,9 +33,12 @@
       "composer-unused/composer-unused-plugin": true,
       "composer/package-versions-deprecated": true,
       "dealerdirect/phpcodesniffer-composer-installer": true,
+      "drupol/composer-packages": true,
       "ergebnis/composer-normalize": true,
       "icanhazstring/composer-unused": true,
-      "infection/extension-installer": true
+      "infection/extension-installer": true,
+      "mindplay/composer-locator": true,
+      "wyrihaximus/broadcast": true
     },
     "platform": {
       "php": "8.2.13"
