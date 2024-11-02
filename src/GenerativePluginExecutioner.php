@@ -268,7 +268,7 @@ final class GenerativePluginExecutioner
 
         foreach (new GlobIterator($vendorDir . '/*/*/composer.json', FilesystemIterator::KEY_AS_FILENAME) as $node) {
             assert($node instanceof SplFileInfo);
-            $composerJson = file_get_contents($node->getFilename());
+            $composerJson = file_get_contents($node->getRealPath());
 
             if ($composerJson === false) {
                 continue;
