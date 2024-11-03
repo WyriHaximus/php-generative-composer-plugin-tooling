@@ -28,6 +28,7 @@ final readonly class ComposerJsonHasItemWithSpecificValue implements PackageFilt
         /**
          * Taken from https://github.com/igorw/get-in/blob/master/src/get_in.php#L5-L26
          * and put in here as composer doesn't like autoloading functions in plugins.
+         *
          * @var array<string, string|bool|array<string, string|bool|array<string, string|bool|array<string, string|bool>>>> $current
          */
         $current = $package->getExtra();

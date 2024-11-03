@@ -41,7 +41,13 @@ use function microtime;
 use function mkdir;
 use function round;
 use function rtrim;
+use function spl_autoload_register;
+use function spl_autoload_unregister;
 use function sprintf;
+use function str_replace;
+use function str_starts_with;
+use function strlen;
+use function substr;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -67,11 +73,17 @@ final class GenerativePluginExecutioner
             $classFilters[] = $filter;
         }
 
-        $unfilteredPackages = self::autoloadablePackages(
-            $composer->getPackage(),
-            ...self::loadVendorDirPackages($vendorDir),
-        );
-        $packages           =  [];
+        $unfilteredPackages = [
+            ...self::autoloadablePackages(
+                $composer->getPackage(),
+                ...self::loadVendorDirPackages($vendorDir),
+            ),
+        ];
+
+        $autoloader = self::createAutoloader($vendorDir, ...$unfilteredPackages);
+        spl_autoload_register($autoloader);
+
+        $packages =  [];
         foreach ($unfilteredPackages as $package) {
             foreach ($packageFilters as $packageFilter) {
                 /** @psalm-suppress InvalidArgument Go home psalm you're drunk */
@@ -112,6 +124,8 @@ final class GenerativePluginExecutioner
         $plugin->compile(self::locateRootPackageInstallPath($plugin, $composer->getConfig(), $composer->getPackage()), ...$items);
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . sprintf($plugin::log(LogStages::Completion), round(microtime(true) - $start, 2)));
+
+        spl_autoload_unregister($autoloader);
     }
 
     /**
@@ -135,7 +149,7 @@ final class GenerativePluginExecutioner
         return $vendorDir . '/' . $plugin::name();
     }
 
-    /** @return iterable<PackageInterface> */
+    /** @return iterable<string, PackageInterface> */
     private static function autoloadablePackages(PackageInterface ...$packages): iterable
     {
         foreach ($packages as $package) {
@@ -147,7 +161,7 @@ final class GenerativePluginExecutioner
                 continue;
             }
 
-            yield $package;
+            yield $package->getName() => $package;
         }
     }
 
@@ -269,7 +283,6 @@ final class GenerativePluginExecutioner
         foreach (new GlobIterator($vendorDir . '/*/*/composer.json', FilesystemIterator::KEY_AS_FILENAME) as $node) {
             assert($node instanceof SplFileInfo);
             $composerJson = file_get_contents($node->getRealPath());
-
             if ($composerJson === false) {
                 continue;
             }
@@ -325,5 +338,43 @@ final class GenerativePluginExecutioner
         }
 
         return $vendorDir;
+    }
+
+    /**
+     * @return callable(string): void
+     *
+     * @infection-ignore-all
+     */
+    private static function createAutoloader(string $vendorDir, PackageInterface ...$packages): callable
+    {
+        return static function (string $class) use ($vendorDir, $packages): void {
+            foreach ($packages as $package) {
+                $autoload = $package->getAutoload();
+                if (! array_key_exists('psr-4', $autoload)) {
+                    continue;
+                }
+
+                foreach ($autoload['psr-4'] as $namespace => $paths) {
+                    foreach (is_array($paths) ? $paths : [$paths] as $path) {
+                        if (! str_starts_with($class, $namespace)) {
+                            continue;
+                        }
+
+                        $possibleFilePath  = $vendorDir . DIRECTORY_SEPARATOR;
+                        $possibleFilePath .= $package->getName() . DIRECTORY_SEPARATOR;
+                        $possibleFilePath .= $path;
+                        $possibleFilePath .= substr($class, strlen($namespace));
+                        $possibleFilePath .= '.php';
+                        $possibleFilePath  = str_replace('\\', DIRECTORY_SEPARATOR, $possibleFilePath);
+
+                        if (! file_exists($possibleFilePath)) {
+                            continue;
+                        }
+
+                        require_once $possibleFilePath;
+                    }
+                }
+            }
+        };
     }
 }
