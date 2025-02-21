@@ -15,7 +15,7 @@
     "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
-    "wyrihaximus/broadcast": "^2.3.1",
+    "wyrihaximus/broadcast": "^2.5.0",
     "wyrihaximus/test-utilities": "^6.0.10"
   },
   "autoload": {
