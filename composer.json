@@ -16,7 +16,7 @@
   },
   "require-dev": {
     "wyrihaximus/broadcast": "^2.3.1",
-    "wyrihaximus/test-utilities": "^6.0.10"
+    "wyrihaximus/test-utilities": "^7.5.2"
   },
   "autoload": {
     "psr-4": {
