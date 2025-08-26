@@ -9,8 +9,8 @@ use WyriHaximus\Composer\GenerativePluginTooling\ClassFilter;
 
 final readonly class ImplementsInterface implements ClassFilter
 {
-    private const DOESNT_IMPLEMENTS_REQUIRED_INTERFACES = false;
-    private const IMPLEMENTS_AN_REQUIRED_INTERFACE      = true;
+    private const bool DOESNT_IMPLEMENTS_REQUIRED_INTERFACES = false;
+    private const bool IMPLEMENTS_AN_REQUIRED_INTERFACE      = true;
     /** @var array<class-string> */
     private array $interfaces;
 

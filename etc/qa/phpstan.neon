@@ -1,11 +1,8 @@
 parameters:
-	ignoreErrors:
-		- '#thecodingmachine\/safe#'
 	excludePaths:
-		- ../../tests/apps/broadcast/src/Dummy/BrokenAsyncListener.php
+		- ../../tests/apps/broadcast/
+		- ../../tests/apps/broadcast-classmap/
 	ergebnis:
 		noExtends:
 			classesAllowedToBeExtended:
 				- Composer\IO\NullIO
-includes:
-	- ../../vendor/wyrihaximus/test-utilities/rules.neon

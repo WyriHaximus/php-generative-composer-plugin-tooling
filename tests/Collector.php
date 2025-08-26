@@ -10,7 +10,7 @@ use Roave\BetterReflection\Reflection\ReflectionUnionType;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
 use WyriHaximus\Composer\GenerativePluginTooling\ItemCollector;
 
-use function strpos;
+use function str_starts_with;
 
 final class Collector implements ItemCollector
 {
@@ -22,7 +22,7 @@ final class Collector implements ItemCollector
                 continue;
             }
 
-            if (strpos($method->getName(), '__') === 0) {
+            if (str_starts_with($method->getName(), '__')) {
                 continue;
             }
 

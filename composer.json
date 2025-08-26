@@ -9,14 +9,14 @@
     }
   ],
   "require": {
-    "php": "^8.2",
+    "php": "^8.4",
     "composer-plugin-api": "^2",
-    "roave/better-reflection": "^6.26",
+    "roave/better-reflection": "^6.60",
     "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
-    "wyrihaximus/broadcast": "^2.3.1",
-    "wyrihaximus/test-utilities": "^6.0.10"
+    "wyrihaximus/makefiles": "^0.7.5",
+    "wyrihaximus/test-utilities": "^8.2.0"
   },
   "autoload": {
     "psr-4": {
@@ -25,6 +25,7 @@
   },
   "autoload-dev": {
     "psr-4": {
+      "WyriHaximus\\Broadcast\\": "tests/apps/broadcast/src/",
       "WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\": "tests/"
     }
   },
@@ -38,21 +39,22 @@
       "icanhazstring/composer-unused": true,
       "infection/extension-installer": true,
       "mindplay/composer-locator": true,
-      "wyrihaximus/broadcast": true
+      "phpstan/extension-installer": true,
+      "wyrihaximus/broadcast": true,
+      "wyrihaximus/makefiles": true,
+      "wyrihaximus/test-utilities": true
     },
     "platform": {
-      "php": "8.2.13"
+      "php": "8.4.13"
     },
     "sort-packages": true
   },
   "scripts": {
     "post-install-cmd": [
-      "composer normalize",
-      "composer update --lock --no-scripts"
+      "make on-install-or-update || true"
     ],
     "post-update-cmd": [
-      "composer normalize",
-      "composer update --lock --no-scripts"
+      "make on-install-or-update || true"
     ]
   }
 }

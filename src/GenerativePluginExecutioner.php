@@ -137,8 +137,8 @@ final class GenerativePluginExecutioner
         RootPackageInterface $rootPackage,
     ): string {
         $vendorDir = $composerConfig->get('vendor-dir');
-        if (! is_string($vendorDir) || ! file_exists($vendorDir)) {
-            throw new Exception('vendor-dir most be a string'); // @phpstan-ignore-line
+        if (! file_exists($vendorDir)) {
+            throw new Exception('vendor-dir most be a string');
         }
 
         // You're on your own
@@ -280,7 +280,7 @@ final class GenerativePluginExecutioner
     {
         $loader = new JsonLoader(new ArrayLoader());
 
-        foreach (new GlobIterator($vendorDir . '/*/*/composer.json', FilesystemIterator::KEY_AS_FILENAME) as $node) {
+        foreach (new GlobIterator($vendorDir . '/*/*/composer.json', FilesystemIterator::KEY_AS_FILENAME | FilesystemIterator::SKIP_DOTS) as $node) {
             assert($node instanceof SplFileInfo);
             $composerJson = file_get_contents($node->getRealPath());
             if ($composerJson === false) {
@@ -296,7 +296,10 @@ final class GenerativePluginExecutioner
                 continue;
             }
 
-            /** @psalm-suppress MixedArgument */
+            if (! is_string($json['name'])) {
+                continue;
+            }
+
             $json['version'] = InstalledVersions::getVersion($json['name']);
 
             $jsonString = json_encode($json);
@@ -315,7 +318,7 @@ final class GenerativePluginExecutioner
         retry:
         try {
             $reflector = new DefaultReflector(
-                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), (new BetterReflection())->astLocator()),
+                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), new BetterReflection()->astLocator()),
             );
         } catch (InvalidPrefixMapping $invalidPrefixMapping) {
             mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
@@ -333,8 +336,8 @@ final class GenerativePluginExecutioner
     private static function getVendorDir(Composer $composer): string
     {
         $vendorDir = $composer->getConfig()->get('vendor-dir');
-        if (! is_string($vendorDir) || $vendorDir === '' || ! file_exists($vendorDir)) {
-            throw new Exception('vendor-dir most be a string'); // @phpstan-ignore-line
+        if ($vendorDir === '' || ! file_exists($vendorDir)) {
+            throw new Exception('vendor-dir most be a string');
         }
 
         return $vendorDir;

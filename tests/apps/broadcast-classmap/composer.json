@@ -1,9 +1,9 @@
 {
   "name": "wyrihaximus/makefiles",
   "autoload": {
-    "psr-4": {
-      "WyriHaximus\\Broadcast\\": "src"
-    }
+    "classmap": [
+      "src"
+    ]
   },
   "extra": {
     "wyrihaximus": {
