@@ -9,7 +9,7 @@
     }
   ],
   "require": {
-    "php": "^8.2",
+    "php": "^8.4.12",
     "composer-plugin-api": "^2",
     "roave/better-reflection": "^6.26",
     "wyrihaximus/list-classes-in-directory": "^1.7"
