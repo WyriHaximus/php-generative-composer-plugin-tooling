@@ -15,11 +15,11 @@ use WyriHaximus\Composer\GenerativePluginTooling\LogStages;
 final class Plugin implements GenerativePlugin
 {
     /** @var array<ItemContract> */
-    public array $items = [];
+    private array $items = [];
 
     public static function name(): string
     {
-        return 'wyrihaximus/broadcast';
+        return 'wyrihaximus/makefiles';
     }
 
     public static function log(LogStages $stage): string
@@ -49,5 +49,11 @@ final class Plugin implements GenerativePlugin
     public function compile(string $rootPath, ItemContract ...$items): void
     {
         $this->items = $items;
+    }
+
+    /** @return iterable<ItemContract> */
+    public function items(): iterable
+    {
+        yield from $this->items;
     }
 }

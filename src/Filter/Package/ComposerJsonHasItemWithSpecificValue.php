@@ -13,7 +13,7 @@ use function is_array;
 
 final readonly class ComposerJsonHasItemWithSpecificValue implements PackageFilter
 {
-    private const KEY_NOT_FOUND_RETURN = false;
+    private const bool KEY_NOT_FOUND_RETURN = false;
 
     /** @var array<string> */
     private array $keys;
@@ -37,6 +37,11 @@ final readonly class ComposerJsonHasItemWithSpecificValue implements PackageFilt
                 return self::KEY_NOT_FOUND_RETURN;
             }
 
+            /**
+             * Ignoring this error as this is by design
+             *
+             * @phpstan-ignore shipmonk.variableTypeOverwritten
+             */
             $current = $current[$key];
         }
 
