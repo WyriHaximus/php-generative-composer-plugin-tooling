@@ -11,7 +11,7 @@
   "require": {
     "php": "^8.4",
     "composer-plugin-api": "^2",
-    "roave/better-reflection": "^6.60",
+    "roave/better-reflection": "^6.65.0",
     "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
