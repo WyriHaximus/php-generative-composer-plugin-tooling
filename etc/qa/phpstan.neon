@@ -1,4 +1,9 @@
 parameters:
+	level: max
+	paths:
+		- ../../etc
+		- ../../src
+		- ../../tests
 	excludePaths:
 		- ../../tests/apps/broadcast/
 		- ../../tests/apps/broadcast-classmap/
