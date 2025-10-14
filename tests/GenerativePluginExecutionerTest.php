@@ -75,7 +75,10 @@ final class GenerativePluginExecutionerTest extends TestCase
                 return stream_get_contents($this->output->getStream());
             }
 
-            /** @inheritDoc */
+            /**
+             * @inheritDoc
+             * @phpstan-ignore typeCoverage.paramTypeCoverage
+             */
             public function write($messages, bool $newline = true, int $verbosity = self::NORMAL): void
             {
                 $this->output->write($messages, $newline, $verbosity & StreamOutput::OUTPUT_RAW);
