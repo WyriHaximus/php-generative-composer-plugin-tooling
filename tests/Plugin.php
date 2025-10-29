@@ -7,6 +7,7 @@ namespace WyriHaximus\Tests\Composer\GenerativePluginTooling;
 use WyriHaximus\Broadcast\Contracts\Listener;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Class\ImplementsInterface;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Class\IsInstantiable;
+use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalNot;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Package\ComposerJsonHasItemWithSpecificValue;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePlugin;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
