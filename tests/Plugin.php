@@ -12,6 +12,7 @@ use WyriHaximus\Composer\GenerativePluginTooling\GenerativePlugin;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
 use WyriHaximus\Composer\GenerativePluginTooling\LogStages;
 
+#[SomePluginAttribute]
 final class Plugin implements GenerativePlugin
 {
     /** @var array<ItemContract> */
