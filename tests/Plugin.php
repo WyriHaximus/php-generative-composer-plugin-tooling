@@ -7,6 +7,9 @@ namespace WyriHaximus\Tests\Composer\GenerativePluginTooling;
 use WyriHaximus\Broadcast\Contracts\Listener;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Class\ImplementsInterface;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Class\IsInstantiable;
+use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalAnd;
+use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalNot;
+use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalOr;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Package\ComposerJsonHasItemWithSpecificValue;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePlugin;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
@@ -36,9 +39,24 @@ final class Plugin implements GenerativePlugin
     /** @inheritDoc */
     public function filters(): iterable
     {
-        yield new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true);
-        yield new IsInstantiable();
-        yield new ImplementsInterface(Listener::class);
+        yield from LogicalAnd::create(
+            ...LogicalOr::create(
+                new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true),
+                new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true),
+            ),
+            ...LogicalOr::create(
+                new IsInstantiable(),
+                new IsInstantiable(),
+            ),
+            ...LogicalOr::create(
+                new ImplementsInterface(Listener::class),
+                ...LogicalNot::create(
+                    ...LogicalNot::create(
+                        new ImplementsInterface(Listener::class),
+                    ),
+                ),
+            ),
+        );
     }
 
     /** @inheritDoc */
