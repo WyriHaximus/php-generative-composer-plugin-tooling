@@ -15,7 +15,7 @@
     "wyrihaximus/list-classes-in-directory": "^1.7"
   },
   "require-dev": {
-    "wyrihaximus/makefiles": "^0.7.11",
+    "wyrihaximus/makefiles": "^0.7.12",
     "wyrihaximus/test-utilities": "^8.6.0"
   },
   "autoload": {
