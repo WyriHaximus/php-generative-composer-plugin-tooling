@@ -11,3 +11,4 @@ parameters:
 		noExtends:
 			classesAllowedToBeExtended:
 				- Composer\IO\NullIO
+				- RuntimeException
