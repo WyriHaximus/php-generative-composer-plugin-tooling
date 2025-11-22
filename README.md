@@ -378,13 +378,24 @@ TwigFile::render(
 );
 ```
 
+## File
+
+Takes a file name, it's contents, and the optional mode:
+
+```php
+File::write(
+    $rootPath . '/src/Generated/AbstractList.php',
+    'A List',
+);
+```
+
 # Todo
 
 - [X] Port boring bits from [`wyrihaximus/broadcast`](https://github.com/wyrihaximus/php-broadcast) for use in other packages
 - [X] Build-in autoloader (sadly)
 - [X] No userland functions anywhere (can't do that due to composer autoloader)
 - [X] Helper to render twig files and write them out
-- [ ] Helper to write files
+- [X] Helper to write files
 - [ ] Create parent directories for written files that don't exist yet
 - [X] Support filtering on the attributes a class has
 - [ ] Support filtering on the attributes a method in a has
