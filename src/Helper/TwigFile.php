@@ -6,10 +6,8 @@ namespace WyriHaximus\Composer\GenerativePluginTooling\Helper;
 
 use WyriHaximus\Twig\SimpleTwig;
 
-use function chmod;
 use function file_exists;
 use function file_get_contents;
-use function file_put_contents;
 use function is_string;
 
 final class TwigFile
@@ -34,7 +32,10 @@ final class TwigFile
             $templateContents,
             $data,
         );
-        file_put_contents($renderedFile, $renderedContents);
-        chmod($renderedFile, $mode);
+        File::write(
+            $renderedFile,
+            $renderedContents,
+            $mode,
+        );
     }
 }
