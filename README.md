@@ -396,7 +396,7 @@ File::write(
 - [X] No userland functions anywhere (can't do that due to composer autoloader)
 - [X] Helper to render twig files and write them out
 - [X] Helper to write files
-- [ ] Create parent directories for written files that don't exist yet
+- [X] Create parent directories for written files that don't exist yet
 - [X] Support filtering on the attributes a class has
 - [ ] Support filtering on the attributes a method in a has
 - [X] Operator filters
