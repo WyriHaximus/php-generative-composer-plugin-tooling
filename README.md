@@ -389,6 +389,15 @@ File::write(
 );
 ```
 
+## Remove
+
+Clears directories and removes files:
+
+```php
+Remove::directoryContents($rootPath . '/src/Generated/'); // Removes all files and directories in src/Generated/
+Remove::file($rootPath . '/vendor/autoload.php'); // Removes specific files such as vendor/autoload.php
+```
+
 # Todo
 
 - [X] Port boring bits from [`wyrihaximus/broadcast`](https://github.com/wyrihaximus/php-broadcast) for use in other packages
@@ -396,6 +405,7 @@ File::write(
 - [X] No userland functions anywhere (can't do that due to composer autoloader)
 - [X] Helper to render twig files and write them out
 - [X] Helper to write files
+- [X] Helper empty directories (I put all my generated files in `src/Generated`)
 - [X] Create parent directories for written files that don't exist yet
 - [X] Support filtering on the attributes a class has
 - [ ] Support filtering on the attributes a method in a has
