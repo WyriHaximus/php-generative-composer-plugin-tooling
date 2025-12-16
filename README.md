@@ -45,6 +45,7 @@ use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePluginExecutioner;
+use WyriHaximus\Composer\GenerativePluginTooling\Helper\Order;
 
 use const PHP_INT_MIN;
 
@@ -55,7 +56,7 @@ final class Installer implements PluginInterface, EventSubscriberInterface
      */
     public static function getSubscribedEvents(): array
     {
-        return [ScriptEvents::PRE_AUTOLOAD_DUMP => ['findEventListeners', PHP_INT_MIN]];
+        return [ScriptEvents::PRE_AUTOLOAD_DUMP => ['findEventListeners', Order::LAST]];
     }
 
     public function activate(Composer $composer, IOInterface $io): void
@@ -398,6 +399,27 @@ Remove::directoryContents($rootPath . '/src/Generated/'); // Removes all files a
 Remove::file($rootPath . '/vendor/autoload.php'); // Removes specific files such as vendor/autoload.php
 ```
 
+## Order
+
+Provides a list of pre-defined priorities for use with the `getSubscribedEvents` method. See the
+[composer documentation](https://getcomposer.org/doc/articles/plugins.md#event-handler) for more information on how
+that works.
+
+The following constants are available:
+
+* `FIRST`
+* `EARLY`
+* `MIDDLE`
+* `LATE`
+* `LAST`
+
+There are two additional constants available that should be used with more care and as little as possible. They run
+before and after everything else. Broadcast does this as it has to pick up any generated code from others that might
+have generated listeners.
+
+* `EVERYONE_ALSO_MUST_TO_GO_AFTER_ME`
+* `EVERYONE_ALSO_MUST_TO_GO_BEFORE_ME`
+
 # Todo
 
 - [X] Port boring bits from [`wyrihaximus/broadcast`](https://github.com/wyrihaximus/php-broadcast) for use in other packages
@@ -406,6 +428,7 @@ Remove::file($rootPath . '/vendor/autoload.php'); // Removes specific files such
 - [X] Helper to render twig files and write them out
 - [X] Helper to write files
 - [X] Helper empty directories (I put all my generated files in `src/Generated`)
+- [X] Helper that provides pre-defined priority constants
 - [X] Create parent directories for written files that don't exist yet
 - [X] Support filtering on the attributes a class has
 - [ ] Support filtering on the attributes a method in a has
