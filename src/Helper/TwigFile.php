@@ -15,6 +15,7 @@ final class TwigFile
     /**
      * @param array<string, mixed> $data
      *
+     * @api
      * @phpstan-ignore ergebnis.noParameterWithNullDefaultValue,ergebnis.noParameterWithNullableTypeDeclaration
      */
     public static function render(

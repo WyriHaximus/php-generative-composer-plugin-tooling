@@ -12,7 +12,10 @@ use function mkdir;
 
 final class File
 {
-    /** @phpstan-ignore ergebnis.noParameterWithNullDefaultValue,ergebnis.noParameterWithNullableTypeDeclaration */
+    /**
+     * @api
+     * @phpstan-ignore ergebnis.noParameterWithNullDefaultValue,ergebnis.noParameterWithNullableTypeDeclaration
+     */
     public static function write(
         string $filename,
         string $data,

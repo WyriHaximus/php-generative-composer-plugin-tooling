@@ -23,8 +23,9 @@ final class TwigFileTest extends TestCase
     #[DataProvider('twigFileRenderExtraArgsProvider')]
     public function render(array $twifFileRenderExtraArgs): void
     {
-        $theBeer      = 'Bourbon Barrel Oro Negro';
-        $sourceFile   = __DIR__ . DIRECTORY_SEPARATOR . 'template.twig';
+        $theBeer    = 'Bourbon Barrel Oro Negro';
+        $sourceFile = __DIR__ . DIRECTORY_SEPARATOR . 'template.twig';
+        self::assertFileExists($sourceFile);
         $renderedFile = $this->getTmpDir() . 'cellar' . DIRECTORY_SEPARATOR . 'dark.bier';
         self::assertFileDoesNotExist($renderedFile);
 
@@ -40,7 +41,8 @@ final class TwigFileTest extends TestCase
             str_replace(
                 '{{ beer }}',
                 $theBeer,
-                file_get_contents($sourceFile), /** @phpstan-ignore-line */
+                /** @phpstan-ignore argument.type */
+                file_get_contents($sourceFile),
             ),
             file_get_contents($renderedFile),
         );

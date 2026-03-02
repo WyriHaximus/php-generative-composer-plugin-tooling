@@ -7,6 +7,7 @@ namespace WyriHaximus\Composer\GenerativePluginTooling\Helper;
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
+/** @api */
 final class Order
 {
     public const int EVERYONE_ALSO_MUST_TO_GO_AFTER_ME = PHP_INT_MAX;

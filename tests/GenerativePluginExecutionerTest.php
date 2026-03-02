@@ -64,7 +64,7 @@ final class GenerativePluginExecutionerTest extends TestCase
 
             public function __construct()
             {
-                /** @phpstan-ignore-next-line Let it blow */
+                /** @phpstan-ignore argument.type */
                 $this->output = new StreamOutput(fopen('php://memory', 'rw'), decorated: false);
             }
 
