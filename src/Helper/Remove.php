@@ -7,6 +7,7 @@ namespace WyriHaximus\Composer\GenerativePluginTooling\Helper;
 use FilesystemIterator;
 use SplFileInfo;
 
+use function file_exists;
 use function is_dir;
 use function is_file;
 use function rmdir;
@@ -17,6 +18,10 @@ final class Remove
     public static function directoryContents(
         string $directory,
     ): void {
+        if (! file_exists($directory)) {
+            return;
+        }
+
         $directoryIterator = new FilesystemIterator($directory);
 
         foreach ($directoryIterator as $node) {
