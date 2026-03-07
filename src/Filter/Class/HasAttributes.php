@@ -12,6 +12,7 @@ use function array_intersect;
 use function array_map;
 use function count;
 
+/** @api */
 final readonly class HasAttributes implements ClassFilter
 {
     /** @var array<class-string> */

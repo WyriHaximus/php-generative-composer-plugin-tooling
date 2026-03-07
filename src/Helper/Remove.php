@@ -15,6 +15,7 @@ use function unlink;
 
 final class Remove
 {
+    /** @api */
     public static function directoryContents(
         string $directory,
     ): void {
@@ -48,6 +49,7 @@ final class Remove
         }
     }
 
+    /** @api */
     public static function file(
         string $filename,
     ): void {

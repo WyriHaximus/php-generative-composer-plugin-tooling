@@ -10,6 +10,7 @@ use WyriHaximus\Composer\GenerativePluginTooling\PackageFilter;
 use function array_filter;
 use function count;
 
+/** @api */
 final readonly class LogicalOr
 {
     /** @return iterable<ClassFilter|PackageFilter> */

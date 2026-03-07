@@ -7,6 +7,7 @@ namespace WyriHaximus\Composer\GenerativePluginTooling\Filter\Class;
 use Roave\BetterReflection\Reflection\ReflectionClass;
 use WyriHaximus\Composer\GenerativePluginTooling\ClassFilter;
 
+/** @api */
 final readonly class ImplementsInterface implements ClassFilter
 {
     private const bool DOESNT_IMPLEMENTS_REQUIRED_INTERFACES = false;

@@ -11,6 +11,7 @@ use function array_key_exists;
 use function explode;
 use function is_array;
 
+/** @api */
 final readonly class ComposerJsonHasItemWithSpecificValue implements PackageFilter
 {
     private const bool KEY_NOT_FOUND_RETURN = false;
