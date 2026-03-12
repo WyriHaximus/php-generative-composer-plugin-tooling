@@ -8,7 +8,6 @@ use RuntimeException;
 use stdClass;
 use WyriHaximus\Broadcast\Contracts\Listener as ListenerContract;
 
-/** @internal */
 final class Listener implements ListenerContract
 {
     /** @var callable $handler */
