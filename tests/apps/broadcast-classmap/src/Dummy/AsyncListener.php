@@ -6,7 +6,6 @@ namespace WyriHaximus\Broadcast\Dummy;
 
 use WyriHaximus\Broadcast\Contracts\Listener as ListenerContract;
 
-/** @internal */
 final class AsyncListener implements ListenerContract
 {
     /** @var callable $handler */
