@@ -1,5 +1,8 @@
 {
   "name": "wyrihaximus/makefiles",
+  "require": {
+    "wyrihaximus/simple-twig": "^2.2.1"
+  },
   "autoload": {
     "psr-4": {
       "WyriHaximus\\Broadcast\\": "src"
