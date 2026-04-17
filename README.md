@@ -136,6 +136,7 @@ final class Plugin implements GenerativePlugin
     /** @inheritDoc */
     public function filters(): iterable
     {
+        yield new ComposerJsonRequiresSpecificPackage('wyrihaximus/broadcast-contracts', PackageType::PRODUCTION);
         yield new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true);
         yield new ImplementsInterface(Listener::class, AsyncListener::class);
         yield new IsInstantiable();
@@ -305,6 +306,26 @@ Only packages with this in their `composer.json` are considered:
             "has-listeners": true
         }
     }
+  }
+}
+```
+
+### ComposerJsonRequiresSpecificPackage
+
+Only consider packages that require a specific package in it's `composer.json`.
+
+So with the following arguments:
+
+```php
+new ComposerJsonRequiresSpecificPackage('wyrihaximus/simple-twig', PackageType::PRODUCTION)
+```
+
+Only packages with this in their `composer.json` are considered:
+
+```json
+{
+  "require": {
+    "wyrihaximus/simple-twig": "^2.2.1"
   }
 }
 ```

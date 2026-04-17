@@ -11,6 +11,8 @@ use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalAnd;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalNot;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Operators\LogicalOr;
 use WyriHaximus\Composer\GenerativePluginTooling\Filter\Package\ComposerJsonHasItemWithSpecificValue;
+use WyriHaximus\Composer\GenerativePluginTooling\Filter\Package\ComposerJsonRequiresSpecificPackage;
+use WyriHaximus\Composer\GenerativePluginTooling\Filter\Package\PackageType;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePlugin;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
 use WyriHaximus\Composer\GenerativePluginTooling\LogStages;
@@ -41,6 +43,8 @@ final class Plugin implements GenerativePlugin
     {
         yield from LogicalAnd::create(
             ...LogicalOr::create(
+                new ComposerJsonRequiresSpecificPackage('wyrihaximus/simple-twig', PackageType::PRODUCTION),
+                new ComposerJsonRequiresSpecificPackage('wyrihaximus/simple-twig', PackageType::DEVELOPMENT),
                 new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true),
                 new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true),
             ),
