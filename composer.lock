@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "56b2c4c113762c71530c36b741b41f1f",
+    "content-hash": "67b806645b3e83cb99e15f0cf94e69bd",
     "packages": [
         {
             "name": "jetbrains/phpstorm-stubs",
@@ -8985,16 +8985,16 @@
         },
         {
             "name": "wyrihaximus/makefiles",
-            "version": "0.10.3",
+            "version": "0.10.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WyriHaximus/Makefiles.git",
-                "reference": "aae3aa61765f5f570cfe338e26e2e0061383dc23"
+                "reference": "1f78e24e998cdfd5557ce04125b9add6a26c05cb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/WyriHaximus/Makefiles/zipball/aae3aa61765f5f570cfe338e26e2e0061383dc23",
-                "reference": "aae3aa61765f5f570cfe338e26e2e0061383dc23",
+                "url": "https://api.github.com/repos/WyriHaximus/Makefiles/zipball/1f78e24e998cdfd5557ce04125b9add6a26c05cb",
+                "reference": "1f78e24e998cdfd5557ce04125b9add6a26c05cb",
                 "shasum": ""
             },
             "require": {
@@ -9006,7 +9006,7 @@
                 "infection/infection": "<0.32.0"
             },
             "require-dev": {
-                "wyrihaximus/test-utilities": "^12.0.0"
+                "wyrihaximus/test-utilities": "^12.1.0"
             },
             "type": "composer-plugin",
             "extra": {
@@ -9030,7 +9030,7 @@
             "description": "🧱 Makefile building blocks",
             "support": {
                 "issues": "https://github.com/WyriHaximus/Makefiles/issues",
-                "source": "https://github.com/WyriHaximus/Makefiles/tree/0.10.3"
+                "source": "https://github.com/WyriHaximus/Makefiles/tree/0.10.4"
             },
             "funding": [
                 {
@@ -9038,7 +9038,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-12T06:38:36+00:00"
+            "time": "2026-04-18T16:54:49+00:00"
         },
         {
             "name": "wyrihaximus/phpstan-rules-wrapper",
