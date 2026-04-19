@@ -34,11 +34,7 @@ final class FailedReflectionsStore
         self::instance()->knownFailedReflections[$classname] = true;
     }
 
-    /**
-     * @internal
-     *
-     * @phpstan-ignore shipmonk.deadMethod
-     */
+    /** @phpstan-ignore shipmonk.deadMethod */
     public static function reset(): void
     {
         self::instance()->knownFailedReflections = [];
