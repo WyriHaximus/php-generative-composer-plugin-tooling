@@ -198,9 +198,15 @@ final class GenerativePluginExecutioner
                 continue;
             }
 
+            /** @var non-empty-string $path */ // phpcs:disable
             foreach ($autoload['classmap'] as $path) {
                 if ($package instanceof RootPackageInterface) {
-                    yield from self::listReflectedClassesInPaths($plugin, $io, $vendorDir, dirname($vendorDir) . DIRECTORY_SEPARATOR . $path);
+                    $pathPrefix = dirname($vendorDir) . DIRECTORY_SEPARATOR;
+                    if (str_starts_with($path, $pathPrefix)) {
+                        $pathPrefix = '';
+                    }
+
+                    yield from self::listReflectedClassesInPaths($plugin, $io, $vendorDir, $pathPrefix . $path);
                 }
 
                 $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $packageName . DIRECTORY_SEPARATOR . $path, '/');
