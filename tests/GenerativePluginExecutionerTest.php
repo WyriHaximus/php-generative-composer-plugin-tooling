@@ -12,12 +12,14 @@ use Composer\Package\RootPackage;
 use Composer\Repository\InstalledRepositoryInterface;
 use Composer\Repository\RepositoryManager;
 use Mockery;
+use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Console\Output\StreamOutput;
 use WyriHaximus\Broadcast\Dummy\AsyncListener;
 use WyriHaximus\Broadcast\Dummy\Event;
 use WyriHaximus\Broadcast\Dummy\Listener;
+use WyriHaximus\Composer\GenerativePluginTooling\FailedReflectionsStore;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePluginExecutioner;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
 use WyriHaximus\TestUtilities\TestCase;
@@ -151,5 +153,11 @@ final class GenerativePluginExecutionerTest extends TestCase
         usort($items, static fn (ItemContract $a, ItemContract $b): int => (string) json_encode($a) <=> (string) json_encode($b));
 
         yield from $items;
+    }
+
+    #[Before]
+    public function resetRFS(): void
+    {
+        FailedReflectionsStore::reset();
     }
 }

@@ -228,7 +228,14 @@ final class GenerativePluginExecutioner
     private static function listReflectedClassesInPaths(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, string $path): iterable
     {
         $classReflector = self::createClassReflector($vendorDir);
+        /**
+         * @var class-string $class
+         */
         foreach (self::listClassesInPaths($path) as $class) {
+            if (FailedReflectionsStore::has($class)) {
+                continue;
+            }
+
             try {
                 yield (static function (ReflectionClass $reflectionClass): ReflectionClass {
                     /**
@@ -242,6 +249,8 @@ final class GenerativePluginExecutioner
                     return $reflectionClass;
                 })($classReflector->reflectClass($class));
             } catch (IdentifierNotFound $identifierNotFound) {
+                FailedReflectionsStore::add($class);
+
                 $io->write(sprintf(
                     '<error>' . $plugin::name() . ':</error> ' . $plugin::log(LogStages::Error),
                     sprintf(
