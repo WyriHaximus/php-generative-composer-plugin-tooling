@@ -358,6 +358,10 @@ final class GenerativePluginExecutioner
     private static function createAutoloader(string $vendorDir, PackageInterface ...$packages): callable
     {
         return static function (string $class) use ($vendorDir, $packages): void {
+            if (!str_contains($class, '\\')) {
+                return;
+            }
+
             foreach ($packages as $package) {
                 $autoload = $package->getAutoload();
                 if (! array_key_exists('psr-4', $autoload)) {
