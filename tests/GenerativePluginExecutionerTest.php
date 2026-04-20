@@ -19,9 +19,11 @@ use Symfony\Component\Console\Output\StreamOutput;
 use WyriHaximus\Broadcast\Dummy\AsyncListener;
 use WyriHaximus\Broadcast\Dummy\Event;
 use WyriHaximus\Broadcast\Dummy\Listener;
+use WyriHaximus\Composer\GenerativePluginTooling\ClassReflectorStore;
 use WyriHaximus\Composer\GenerativePluginTooling\FailedReflectionsStore;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePluginExecutioner;
 use WyriHaximus\Composer\GenerativePluginTooling\Item as ItemContract;
+use WyriHaximus\Composer\GenerativePluginTooling\ReflectionsStore;
 use WyriHaximus\TestUtilities\TestCase;
 
 use function fopen;
@@ -158,6 +160,8 @@ final class GenerativePluginExecutionerTest extends TestCase
     #[Before]
     public function resetRFS(): void
     {
+        ClassReflectorStore::reset();
         FailedReflectionsStore::reset();
+        ReflectionsStore::reset();
     }
 }
