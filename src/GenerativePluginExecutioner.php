@@ -236,8 +236,13 @@ final class GenerativePluginExecutioner
                 continue;
             }
 
+            if (ReflectionsStore::has($class)) {
+                ReflectionsStore::get($class);
+                continue;
+            }
+
             try {
-                yield (static function (ReflectionClass $reflectionClass): ReflectionClass {
+                $reflection = (static function (ReflectionClass $reflectionClass): ReflectionClass {
                     /**
                      * Unit tests will fail if this line isn't here, getMethods will also do the trick
                      * Assuming any actual class properties reading will trigger it to be loaded
@@ -248,6 +253,8 @@ final class GenerativePluginExecutioner
 
                     return $reflectionClass;
                 })($classReflector->reflectClass($class));
+                ReflectionsStore::add($class, $reflection);
+                yield $reflection;
             } catch (IdentifierNotFound $identifierNotFound) {
                 FailedReflectionsStore::add($class);
 
@@ -325,11 +332,17 @@ final class GenerativePluginExecutioner
     /** @param non-empty-string $vendorDir */
     private static function createClassReflector(string $vendorDir): DefaultReflector
     {
+        if (ClassReflectorStore::has($vendorDir)) {
+            return ClassReflectorStore::get($vendorDir);
+        }
+
         retry:
         try {
             $reflector = new DefaultReflector(
                 (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), new BetterReflection()->astLocator()),
             );
+
+            ClassReflectorStore::add($vendorDir, $reflector);
         } catch (InvalidPrefixMapping $invalidPrefixMapping) {
             mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
             goto retry;
