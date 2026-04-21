@@ -22,6 +22,8 @@ use Roave\BetterReflection\Reflector\Exception\IdentifierNotFound;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Factory\MakeLocatorForComposerJsonAndInstalledJson;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Psr\Exception\InvalidPrefixMapping;
 use SplFileInfo;
+use WyriHaximus\Composer\GenerativePluginTooling\Cache\Store;
+use WyriHaximus\Composer\GenerativePluginTooling\Composer\ASTLocatorStore;
 use WyriHaximus\Lister;
 
 use function array_key_exists;
@@ -101,7 +103,9 @@ final class GenerativePluginExecutioner
         $classes           =  [];
         foreach ($unfilteredClasses as $class) {
             foreach ($classFilters as $classFilter) {
-                if (! $classFilter($class)) {
+                $classFilterOutcome = $classFilter($class);
+                Store::cache()->classFilterOutcome($class->getName(), $classFilter::class, $classFilterOutcome);
+                if (! $classFilterOutcome) {
                     continue 2;
                 }
             }
@@ -111,9 +115,9 @@ final class GenerativePluginExecutioner
 
         $items = [];
         foreach ($classes as $class) {
-            foreach ($plugin->collectors() as $collector) {
-                $items = [...$items, ...$collector->collect($class)];
-            }
+//            foreach ($plugin->collectors() as $collector) {
+//                $items = [...$items, ...$collector->collect($class)];
+//            }
         }
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . sprintf($plugin::log(LogStages::Collected), count($items)));
@@ -254,6 +258,7 @@ final class GenerativePluginExecutioner
                     return $reflectionClass;
                 })($classReflector->reflectClass($class));
                 ReflectionsStore::add($class, $reflection);
+                Store::cache()->fileHash($reflection->getFileName(), md5_file($reflection->getFileName()));
                 yield $reflection;
             } catch (IdentifierNotFound $identifierNotFound) {
                 FailedReflectionsStore::add($class);
@@ -339,7 +344,7 @@ final class GenerativePluginExecutioner
         retry:
         try {
             $reflector = new DefaultReflector(
-                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), new BetterReflection()->astLocator()),
+                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), ASTLocatorStore::ASTLocator()),
             );
 
             ClassReflectorStore::add($vendorDir, $reflector);

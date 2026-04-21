@@ -2,6 +2,7 @@
   "name": "wyrihaximus/generative-composer-plugin-tooling",
   "description": "\ud83d\udc26\u200d\ud83d\udd25 Generative Composer Plugin Tooling",
   "license": "MIT",
+  "type": "composer-plugin",
   "authors": [
     {
       "name": "Cees-Jan Kiewiet",
@@ -57,5 +58,8 @@
     "post-update-cmd": [
       "make on-install-or-update || true"
     ]
+  },
+  "extra": {
+    "class": "WyriHaximus\\Composer\\GenerativePluginTooling\\Composer\\Cache"
   }
 }
