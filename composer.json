@@ -16,7 +16,7 @@
     "wyrihaximus/simple-twig": "^2.2.1"
   },
   "require-dev": {
-    "wyrihaximus/makefiles": "^0.10.4",
+    "wyrihaximus/makefiles": "^0.10.6",
     "wyrihaximus/test-utilities": "^12.2.0"
   },
   "autoload": {
