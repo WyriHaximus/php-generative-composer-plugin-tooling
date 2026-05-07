@@ -13,9 +13,17 @@ use function is_file;
 use function rmdir;
 use function unlink;
 
+/** @api */
 final class Remove
 {
-    /** @api */
+    public static function directoryContentsOnlyIfItExists(
+        string $directory,
+    ): void {
+        if (file_exists($directory)) {
+            self::directoryContents($directory);
+        }
+    }
+
     public static function directoryContents(
         string $directory,
     ): void {
@@ -49,7 +57,14 @@ final class Remove
         }
     }
 
-    /** @api */
+    public static function fileOnlyIfItExists(
+        string $filename,
+    ): void {
+        if (file_exists($filename)) {
+            self::file($filename);
+        }
+    }
+
     public static function file(
         string $filename,
     ): void {
