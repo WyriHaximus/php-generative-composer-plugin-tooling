@@ -33,7 +33,7 @@ final class RemoveTest extends TestCase
         touch($dirName . DIRECTORY_SEPARATOR . 'dir' . DIRECTORY_SEPARATOR . 'file');
         self::assertFileExists($dirName . DIRECTORY_SEPARATOR . 'dir' . DIRECTORY_SEPARATOR . 'file');
 
-        Remove::directoryContents($dirName);
+        Remove::directoryContentsOnlyIfItExists($dirName);
 
         self::assertFileDoesNotExist($dirName . DIRECTORY_SEPARATOR . 'dir' . DIRECTORY_SEPARATOR . 'file');
         self::assertDirectoryDoesNotExist($dirName . DIRECTORY_SEPARATOR . 'dir');
@@ -47,7 +47,7 @@ final class RemoveTest extends TestCase
         $fileName = $this->getTmpDir() . md5_file(__FILE__) . '.md5';
         touch($fileName);
         self::assertFileExists($fileName);
-        Remove::file($fileName);
+        Remove::fileOnlyIfItExists($fileName);
         self::assertFileDoesNotExist($fileName);
     }
 }
