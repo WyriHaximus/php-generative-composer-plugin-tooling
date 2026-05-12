@@ -237,7 +237,7 @@ final class GenerativePluginExecutioner
             }
 
             if (ReflectionsStore::has($class)) {
-                ReflectionsStore::get($class);
+                yield ReflectionsStore::get($class);
                 continue;
             }
 
