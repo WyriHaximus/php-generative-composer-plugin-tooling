@@ -19,9 +19,11 @@ final class Remove
     public static function directoryContentsOnlyIfItExists(
         string $directory,
     ): void {
-        if (file_exists($directory)) {
-            self::directoryContents($directory);
+        if (! file_exists($directory)) {
+            return;
         }
+
+        self::directoryContents($directory);
     }
 
     public static function directoryContents(
@@ -60,9 +62,11 @@ final class Remove
     public static function fileOnlyIfItExists(
         string $filename,
     ): void {
-        if (file_exists($filename)) {
-            self::file($filename);
+        if (! file_exists($filename)) {
+            return;
         }
+
+        self::file($filename);
     }
 
     public static function file(

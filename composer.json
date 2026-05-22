@@ -13,7 +13,7 @@
     "composer-plugin-api": "^2",
     "roave/better-reflection": "^6.71.0",
     "wyrihaximus/list-classes-in-directory": "^1.7",
-    "wyrihaximus/simple-twig": "^2.2.1"
+    "wyrihaximus/simple-twig": "^2.3.0"
   },
   "require-dev": {
     "wyrihaximus/makefiles": "^0.10.6",
