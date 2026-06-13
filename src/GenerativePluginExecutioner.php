@@ -348,7 +348,6 @@ final class GenerativePluginExecutioner
             goto retry;
         }
 
-        /** @phpstan-ignore variable.undefined */
         return $reflector;
     }
 

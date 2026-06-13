@@ -8,6 +8,7 @@ use RuntimeException;
 
 final class TwigFileDoesNotExist extends RuntimeException
 {
+    /** @api */
     private(set) string $twigTemplateFile;
 
     public static function create(string $twigTemplateFile): self
