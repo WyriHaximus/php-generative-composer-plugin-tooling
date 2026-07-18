@@ -344,7 +344,7 @@ final class GenerativePluginExecutioner
 
             ClassReflectorStore::add($vendorDir, $reflector);
         } catch (InvalidPrefixMapping $invalidPrefixMapping) {
-            mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0]);
+            mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0], recursive: true);
             goto retry;
         }
 
