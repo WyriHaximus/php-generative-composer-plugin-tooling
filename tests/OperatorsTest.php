@@ -19,6 +19,7 @@ use Symfony\Component\Console\Output\StreamOutput;
 use WyriHaximus\Broadcast\Dummy\AsyncListener;
 use WyriHaximus\Broadcast\Dummy\Event;
 use WyriHaximus\Broadcast\Dummy\Listener;
+use WyriHaximus\Composer\GenerativePluginTooling\Cache\Store;
 use WyriHaximus\Composer\GenerativePluginTooling\ClassReflectorStore;
 use WyriHaximus\Composer\GenerativePluginTooling\FailedReflectionsStore;
 use WyriHaximus\Composer\GenerativePluginTooling\GenerativePluginExecutioner;
@@ -160,5 +161,6 @@ final class OperatorsTest extends TestCase
         ClassReflectorStore::reset();
         FailedReflectionsStore::reset();
         ReflectionsStore::reset();
+        Store::reset();
     }
 }

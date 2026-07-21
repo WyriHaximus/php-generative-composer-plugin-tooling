@@ -441,6 +441,54 @@ have generated listeners.
 * `EVERYONE_ALSO_MUST_TO_GO_AFTER_ME`
 * `EVERYONE_ALSO_MUST_TO_GO_BEFORE_ME`
 
+# Cache
+
+Generative plugins scan and reflect a lot of code on every `composer dump-autoload`. That work is repeated even when
+nothing changed. This package ships a transparent cache that speeds up subsequent runs.
+
+The cache is **opt-in** and **requires no changes to your plugin**. Enable it in the root package's `composer.json`:
+
+```json
+{
+  "extra": {
+    "wyrihaximus": {
+      "generative-composer-plugin-tooling": {
+        "cache": "var/generative-plugin-cache.json"
+      }
+    }
+  }
+}
+```
+
+The path is relative to your project root. Add the cache file to `.gitignore`:
+
+```
+var/generative-plugin-cache.json
+```
+
+## How it works
+
+This package registers its own Composer plugin (`WyriHaximus\Composer\GenerativePluginTooling\Composer\Cache`). On
+`pre-autoload-dump` it loads the cache before your generative plugin runs, and saves it afterwards.
+
+When the cache is enabled, `GenerativePluginExecutioner` reuses cached data where possible:
+
+* **File hashes** — skip work for unchanged source files
+* **Class filter outcomes** — skip re-running filters when a class file has not changed
+* **Failed reflections** — skip re-reflecting classes that failed before
+* **Collected items** — skip re-running collectors when a class file has not changed
+
+When the cache is not configured, everything behaves as before with no overhead.
+
+## Invalidation
+
+The cache is invalidated automatically when:
+
+* `vendor/composer/installed.json` changes (packages added, removed, or updated)
+* A cached source file changes (detected via md5)
+
+On the first run with caching enabled, the cache is built as usual. Later runs on an unchanged codebase are much faster.
+
 # Todo
 
 - [X] Port boring bits from [`wyrihaximus/broadcast`](https://github.com/wyrihaximus/php-broadcast) for use in other packages
@@ -454,7 +502,7 @@ have generated listeners.
 - [X] Support filtering on the attributes a class has
 - [ ] Support filtering on the attributes a method in a has
 - [X] Operator filters
-- [ ] Improve performance
+- [X] Improve performance
 - [ ] Handle reflection errors better (which is a great part of the item above)
 
 # Future goals/ideas

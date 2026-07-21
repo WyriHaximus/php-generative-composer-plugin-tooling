@@ -15,13 +15,15 @@ use Composer\Package\RootPackageInterface;
 use Exception;
 use FilesystemIterator;
 use GlobIterator;
-use Roave\BetterReflection\BetterReflection;
 use Roave\BetterReflection\Reflection\ReflectionClass;
 use Roave\BetterReflection\Reflector\DefaultReflector;
 use Roave\BetterReflection\Reflector\Exception\IdentifierNotFound;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Factory\MakeLocatorForComposerJsonAndInstalledJson;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Psr\Exception\InvalidPrefixMapping;
 use SplFileInfo;
+use WyriHaximus\Composer\GenerativePluginTooling\Cache\Store;
+use WyriHaximus\Composer\GenerativePluginTooling\Composer\ASTLocatorStore;
+use WyriHaximus\Composer\GenerativePluginTooling\Helper\ItemSerializer;
 use WyriHaximus\Lister;
 
 use function array_key_exists;
@@ -37,6 +39,7 @@ use function is_file;
 use function is_string;
 use function json_decode;
 use function json_encode;
+use function md5_file;
 use function microtime;
 use function mkdir;
 use function round;
@@ -101,7 +104,7 @@ final class GenerativePluginExecutioner
         $classes           =  [];
         foreach ($unfilteredClasses as $class) {
             foreach ($classFilters as $classFilter) {
-                if (! $classFilter($class)) {
+                if (! self::classFilterOutcome($class, $classFilter)) {
                     continue 2;
                 }
             }
@@ -111,8 +114,16 @@ final class GenerativePluginExecutioner
 
         $items = [];
         foreach ($classes as $class) {
+            $cachedItems = self::tryCollectFromCache($plugin, $class);
+            if ($cachedItems !== null) {
+                $items = [...$items, ...$cachedItems];
+                continue;
+            }
+
             foreach ($plugin->collectors() as $collector) {
-                $items = [...$items, ...$collector->collect($class)];
+                $collected = [...$collector->collect($class)];
+                self::storeCollectedItems($plugin, $class, $collector, ...$collected);
+                $items = [...$items, ...$collected];
             }
         }
 
@@ -236,6 +247,11 @@ final class GenerativePluginExecutioner
                 continue;
             }
 
+            if (Store::cache()->hasFailedReflection($class)) {
+                FailedReflectionsStore::add($class);
+                continue;
+            }
+
             if (ReflectionsStore::has($class)) {
                 yield ReflectionsStore::get($class);
                 continue;
@@ -254,9 +270,11 @@ final class GenerativePluginExecutioner
                     return $reflectionClass;
                 })($classReflector->reflectClass($class));
                 ReflectionsStore::add($class, $reflection);
+                self::rememberFileHash($reflection->getFileName() ?? '');
                 yield $reflection;
             } catch (IdentifierNotFound $identifierNotFound) {
                 FailedReflectionsStore::add($class);
+                Store::cache()->failedReflection($class);
 
                 $io->write(sprintf(
                     '<error>' . $plugin::name() . ':</error> ' . $plugin::log(LogStages::Error),
@@ -339,7 +357,7 @@ final class GenerativePluginExecutioner
         retry:
         try {
             $reflector = new DefaultReflector(
-                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), new BetterReflection()->astLocator()),
+                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), ASTLocatorStore::ASTLocator()),
             );
 
             ClassReflectorStore::add($vendorDir, $reflector);
@@ -402,5 +420,77 @@ final class GenerativePluginExecutioner
                 }
             }
         };
+    }
+
+    private static function classFilterOutcome(ReflectionClass $class, ClassFilter $classFilter): bool
+    {
+        $fileName      = $class->getFileName();
+        $cachedOutcome = Store::cache()->getClassFilterOutcome($class->getName(), $classFilter::class);
+        if ($cachedOutcome !== null && $fileName !== null && Store::cache()->fileHashMatches($fileName)) {
+            return $cachedOutcome;
+        }
+
+        $classFilterOutcome = $classFilter($class);
+        Store::cache()->classFilterOutcome($class->getName(), $classFilter::class, $classFilterOutcome);
+        self::rememberFileHash($fileName ?? '');
+
+        return $classFilterOutcome;
+    }
+
+    /** @return array<Item>|null */
+    private static function tryCollectFromCache(GenerativePlugin $plugin, ReflectionClass $class): array|null
+    {
+        $fileName = $class->getFileName();
+        if ($fileName === null || ! Store::cache()->fileHashMatches($fileName)) {
+            return null;
+        }
+
+        $collectors = [...$plugin->collectors()];
+        if (! Store::cache()->hasCollectedItemsForClass($plugin::name(), $class->getName(), $collectors)) {
+            return null;
+        }
+
+        $items = [];
+        foreach ($collectors as $collector) {
+            $cachedItems = Store::cache()->getCollectedItems($plugin::name(), $class->getName(), $collector::class);
+            if ($cachedItems === null) {
+                return null;
+            }
+
+            foreach ($cachedItems as $serializedItem) {
+                $items[] = ItemSerializer::unserialize($serializedItem);
+            }
+        }
+
+        return $items;
+    }
+
+    private static function storeCollectedItems(
+        GenerativePlugin $plugin,
+        ReflectionClass $class,
+        ItemCollector $collector,
+        Item ...$collected,
+    ): void {
+        $serializedItems = [];
+        foreach ($collected as $item) {
+            $serializedItems[] = ItemSerializer::serialize($item);
+        }
+
+        Store::cache()->collectedItems($plugin::name(), $class->getName(), $collector::class, $serializedItems);
+        self::rememberFileHash($class->getFileName() ?? '');
+    }
+
+    private static function rememberFileHash(string $fileName): void
+    {
+        if ($fileName === '') {
+            return;
+        }
+
+        $hash = md5_file($fileName);
+        if ($hash === false) {
+            return;
+        }
+
+        Store::cache()->fileHash($fileName, $hash);
     }
 }

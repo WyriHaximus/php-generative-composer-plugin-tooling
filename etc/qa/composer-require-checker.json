@@ -4,12 +4,15 @@
     "static", "self", "parent",
     "array", "string", "int", "float", "bool", "iterable", "callable", "void", "object",
     "Composer\\Composer", "Composer\\Config", "Composer\\InstalledVersions", "Composer\\IO\\IOInterface",
+    "Composer\\EventDispatcher\\EventSubscriberInterface", "Composer\\Plugin\\PluginInterface",
+    "Composer\\Script\\Event", "Composer\\Script\\ScriptEvents",
     "Package\\Loader\\ArrayLoader", "Composer\\Package\\Loader\\ArrayLoader", "Composer\\Package\\Loader\\JsonLoader",
     "Composer\\Package\\PackageInterface", "Composer\\Package\\RootPackageInterface", "json_decode", "json_encode"
   ],
   "php-core-extensions" : [
     "Core",
     "date",
+    "json",
     "pcre",
     "Phar",
     "Reflection",
