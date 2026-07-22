@@ -20,10 +20,10 @@ use function substr;
 final class Cache implements JsonSerializable
 {
     /**
-     * @param array<string, string>                                                    $fileHashes
-     * @param array<string, array{class: string, filter: class-string, outcome: bool}> $classFilterOutcome
-     * @param array<class-string, true>                                                $failedReflections
-     * @param array<string, array<string, array<string, array<int, string>>>>          $collectedItems
+     * @param array<string, string>                                                 $fileHashes
+     * @param array<string, array{class: string, filterKey: string, outcome: bool}> $classFilterOutcome
+     * @param array<class-string, true>                                             $failedReflections
+     * @param array<string, array<string, array<string, array<int, string>>>>       $collectedItems
      */
     public function __construct(
         private readonly string $root,
@@ -42,7 +42,7 @@ final class Cache implements JsonSerializable
         /** @var array<string, string> $fileHashes */
         $fileHashes = $json['fileHashes'] ?? [];
 
-        /** @var array<string, array{class: string, filter: class-string, outcome: bool}> $classFilterOutcome */
+        /** @var array<string, array{class: string, filterKey: string, outcome: bool}> $classFilterOutcome */
         $classFilterOutcome = $json['classFilterOutcome'] ?? [];
 
         /** @var list<class-string> $failedReflectionClassNames */
@@ -116,14 +116,13 @@ final class Cache implements JsonSerializable
         return $this->fileHashes[$relativePath] === md5_file($filePath);
     }
 
-    /** @param class-string $filter */
-    public function getClassFilterOutcome(string $class, string $filter): bool|null
+    public function getClassFilterOutcome(string $class, string $filterKey): bool|null
     {
         if (! $this->enabled) {
             return null;
         }
 
-        $key = md5($class . '_=_' . $filter);
+        $key = md5($class . '_=_' . $filterKey);
         if (! array_key_exists($key, $this->classFilterOutcome)) {
             return null;
         }
@@ -131,16 +130,15 @@ final class Cache implements JsonSerializable
         return $this->classFilterOutcome[$key]['outcome'];
     }
 
-    /** @param class-string $filter */
-    public function classFilterOutcome(string $class, string $filter, bool $outcome): void
+    public function classFilterOutcome(string $class, string $filterKey, bool $outcome): void
     {
         if (! $this->enabled) {
             return;
         }
 
-        $this->classFilterOutcome[md5($class . '_=_' . $filter)] = [
+        $this->classFilterOutcome[md5($class . '_=_' . $filterKey)] = [
             'class' => $class,
-            'filter' => $filter,
+            'filterKey' => $filterKey,
             'outcome' => $outcome,
         ];
     }
