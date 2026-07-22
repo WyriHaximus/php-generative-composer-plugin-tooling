@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace WyriHaximus\Composer\GenerativePluginTooling\Cache;
 
+use Composer\IO\IOInterface;
+use Throwable;
 use WyriHaximus\Composer\GenerativePluginTooling\Cache;
 use WyriHaximus\Composer\GenerativePluginTooling\FailedReflectionsStore;
 
 use function assert;
 use function dirname;
+use function error_get_last;
 use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
@@ -73,29 +76,50 @@ final class Store
         return self::$instance instanceof self;
     }
 
-    public static function store(): void
+    public static function store(IOInterface $io): bool
     {
         if (! self::isEnabled()) {
-            return;
+            return false;
         }
 
         $instance = self::$instance;
         if (! $instance instanceof self) {
-            return;
+            return false;
         }
 
         if ((string) $instance->cacheFilePath === '') {
-            return;
+            return false;
         }
 
-        $instance->cache->setInstalledJsonHash($instance->installedJsonPath());
+        try {
+            $instance->cache->setInstalledJsonHash($instance->installedJsonPath());
 
-        $cacheDirectory = dirname((string) $instance->cacheFilePath);
-        if (! is_dir($cacheDirectory)) {
-            mkdir($cacheDirectory, recursive: true);
+            $cacheDirectory = dirname((string) $instance->cacheFilePath);
+            if (! is_dir($cacheDirectory) && ! mkdir($cacheDirectory, recursive: true)) {
+                self::logError($io, 'Failed to create cache directory: ' . $cacheDirectory);
+
+                return false;
+            }
+
+            $encoded = json_encode($instance->cache);
+            if ($encoded === false) {
+                self::logError($io, 'Failed to encode cache as JSON');
+
+                return false;
+            }
+
+            if (file_put_contents((string) $instance->cacheFilePath, $encoded) === false) {
+                self::logError($io, 'Failed to write cache file: ' . (string) $instance->cacheFilePath);
+
+                return false;
+            }
+
+            return true;
+        } catch (Throwable $throwable) {
+            self::logError($io, 'Failed to write cache: ' . $throwable->getMessage());
+
+            return false;
         }
-
-        file_put_contents((string) $instance->cacheFilePath, json_encode($instance->cache));
     }
 
     public static function cache(): Cache
@@ -112,7 +136,7 @@ final class Store
         return $instance->cache;
     }
 
-    /** @phpstan-ignore shipmonk.deadMethod */
+    /** @api */
     public static function reset(): void
     {
         self::$instance      = null;
@@ -122,5 +146,13 @@ final class Store
     private function installedJsonPath(): string
     {
         return rtrim($this->vendorDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'installed.json';
+    }
+
+    private static function logError(IOInterface $io, string $message): void
+    {
+        $error  = error_get_last();
+        $suffix = is_array($error) ? ' with error: ' . $error['message'] : '';
+
+        $io->writeError('wyrihaximus/generative-composer-plugin-tooling: ' . $message . $suffix);
     }
 }

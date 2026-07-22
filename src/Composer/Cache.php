@@ -44,7 +44,7 @@ final class Cache implements PluginInterface, EventSubscriberInterface
         // does nothing, see getSubscribedEvents() instead.
     }
 
-    /** @phpstan-ignore shipmonk.deadMethod */
+    /** @api */
     public static function loadCache(Event $event): void
     {
         $cacheLocation = CacheLocator::locate($event->getComposer());
@@ -57,7 +57,7 @@ final class Cache implements PluginInterface, EventSubscriberInterface
         $event->getIO()->write('<info>wyrihaximus/generative-composer-plugin-tooling:</info> Loaded Cache');
     }
 
-    /** @phpstan-ignore shipmonk.deadMethod */
+    /** @api */
     public static function saveCache(Event $event): void
     {
         $cacheLocation = CacheLocator::locate($event->getComposer());
@@ -66,7 +66,10 @@ final class Cache implements PluginInterface, EventSubscriberInterface
         }
 
         $event->getIO()->write('<info>wyrihaximus/generative-composer-plugin-tooling:</info> Storing Cache');
-        Store::store();
+        if (! Store::store($event->getIO())) {
+            return;
+        }
+
         $event->getIO()->write('<info>wyrihaximus/generative-composer-plugin-tooling:</info> Stored Cache');
     }
 }
