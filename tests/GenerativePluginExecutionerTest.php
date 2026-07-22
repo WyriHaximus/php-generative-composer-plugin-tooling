@@ -112,7 +112,7 @@ final class GenerativePluginExecutionerTest extends TestCase
 
         $plugin = new Plugin();
         GenerativePluginExecutioner::execute($composer, $io, $plugin);
-        Store::store();
+        Store::store($io);
 
         ClassReflectorStore::reset();
         FailedReflectionsStore::reset();
