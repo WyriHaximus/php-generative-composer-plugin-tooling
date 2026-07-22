@@ -44,6 +44,7 @@ use function microtime;
 use function mkdir;
 use function round;
 use function rtrim;
+use function serialize;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 use function sprintf;
@@ -425,13 +426,14 @@ final class GenerativePluginExecutioner
     private static function classFilterOutcome(ReflectionClass $class, ClassFilter $classFilter): bool
     {
         $fileName      = $class->getFileName();
-        $cachedOutcome = Store::cache()->getClassFilterOutcome($class->getName(), $classFilter::class);
+        $filterKey     = serialize($classFilter);
+        $cachedOutcome = Store::cache()->getClassFilterOutcome($class->getName(), $filterKey);
         if ($cachedOutcome !== null && $fileName !== null && Store::cache()->fileHashMatches($fileName)) {
             return $cachedOutcome;
         }
 
         $classFilterOutcome = $classFilter($class);
-        Store::cache()->classFilterOutcome($class->getName(), $classFilter::class, $classFilterOutcome);
+        Store::cache()->classFilterOutcome($class->getName(), $filterKey, $classFilterOutcome);
         self::rememberFileHash($fileName ?? '');
 
         return $classFilterOutcome;
