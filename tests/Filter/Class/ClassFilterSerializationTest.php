@@ -17,6 +17,7 @@ use WyriHaximus\Tests\Composer\GenerativePluginTooling\Filter\Class\Fixtures\Con
 use WyriHaximus\Tests\Composer\GenerativePluginTooling\Filter\Class\Fixtures\WorkerOnly;
 use WyriHaximus\TestUtilities\TestCase;
 
+use function md5;
 use function serialize;
 
 final class ClassFilterSerializationTest extends TestCase
@@ -35,11 +36,11 @@ final class ClassFilterSerializationTest extends TestCase
         self::assertNotSame(serialize($listenerFilter), serialize($actionFilter));
 
         $cache = Cache::fromJSON([], '');
-        $cache->classFilterOutcome($className, serialize($listenerFilter), true);
-        $cache->classFilterOutcome($className, serialize($actionFilter), false);
+        $cache->classFilterOutcome($className, md5(serialize($listenerFilter)), true);
+        $cache->classFilterOutcome($className, md5(serialize($actionFilter)), false);
 
-        self::assertTrue($cache->getClassFilterOutcome($className, serialize($listenerFilter)));
-        self::assertFalse($cache->getClassFilterOutcome($className, serialize($actionFilter)));
+        self::assertTrue($cache->getClassFilterOutcome($className, md5(serialize($listenerFilter))));
+        self::assertFalse($cache->getClassFilterOutcome($className, md5(serialize($actionFilter))));
     }
 
     #[Test]

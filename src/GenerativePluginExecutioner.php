@@ -27,6 +27,8 @@ use WyriHaximus\Composer\GenerativePluginTooling\Helper\ItemSerializer;
 use WyriHaximus\Lister;
 
 use function array_key_exists;
+use function array_map;
+use function array_values;
 use function assert;
 use function count;
 use function dirname;
@@ -39,6 +41,7 @@ use function is_file;
 use function is_string;
 use function json_decode;
 use function json_encode;
+use function md5;
 use function md5_file;
 use function microtime;
 use function mkdir;
@@ -78,6 +81,12 @@ final class GenerativePluginExecutioner
             $classFilters[] = $filter;
         }
 
+        $classFilterKeyHashes = array_map(
+            static fn (ClassFilter $classFilter): string => md5(serialize($classFilter)),
+            $classFilters,
+        );
+        $collectors           = array_values([...$plugin->collectors()]);
+
         $unfilteredPackages = [
             ...self::autoloadablePackages(
                 $composer->getPackage(),
@@ -101,27 +110,43 @@ final class GenerativePluginExecutioner
 
         unset($unfilteredPackages);
 
-        $unfilteredClasses = self::listClassesInPackages($plugin, $io, $vendorDir, ...$packages);
-        $classes           =  [];
-        foreach ($unfilteredClasses as $class) {
-            foreach ($classFilters as $classFilter) {
-                if (! self::classFilterOutcome($class, $classFilter)) {
-                    continue 2;
-                }
+        $items           = [];
+        $needsReflection = [];
+        foreach (self::listClassNamesInPackages($vendorDir, ...$packages) as $className) {
+            /** @var class-string $className */
+            $cachedItems = self::tryResolveFromCache($plugin, $className, $classFilterKeyHashes, $collectors);
+            if ($cachedItems === false) {
+                continue;
             }
 
-            $classes[] = $class;
-        }
-
-        $items = [];
-        foreach ($classes as $class) {
-            $cachedItems = self::tryCollectFromCache($plugin, $class);
             if ($cachedItems !== null) {
                 $items = [...$items, ...$cachedItems];
                 continue;
             }
 
-            foreach ($plugin->collectors() as $collector) {
+            $needsReflection[] = $className;
+        }
+
+        foreach ($needsReflection as $className) {
+            /** @var class-string $className */
+            $class = self::reflectClass($plugin, $io, $vendorDir, $className);
+            if (! $class instanceof ReflectionClass) {
+                continue;
+            }
+
+            foreach ($classFilters as $index => $classFilter) {
+                if (! self::classFilterOutcome($class, $classFilter, $classFilterKeyHashes[$index])) {
+                    continue 2;
+                }
+            }
+
+            $cachedItems = self::collectCachedItems($plugin, $class->getName(), $collectors);
+            if ($cachedItems !== null) {
+                $items = [...$items, ...$cachedItems];
+                continue;
+            }
+
+            foreach ($collectors as $collector) {
                 $collected = [...$collector->collect($class)];
                 self::storeCollectedItems($plugin, $class, $collector, ...$collected);
                 $items = [...$items, ...$collected];
@@ -177,115 +202,122 @@ final class GenerativePluginExecutioner
     /**
      * @param non-empty-string $vendorDir
      *
-     * @return iterable<ReflectionClass>
+     * @return iterable<class-string>
      */
-    private static function listClassesInPackages(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, PackageInterface ...$packages): iterable
+    private static function listClassNamesInPackages(string $vendorDir, PackageInterface ...$packages): iterable
     {
         foreach ($packages as $package) {
-            $packageName = $package->getName();
-            $autoload    = $package->getAutoload();
-
-            if (array_key_exists('psr-4', $autoload)) {
-                foreach ($autoload['psr-4'] as $path) {
-                    if (! is_string($path)) {
-                        continue;
-                    }
-
-                    if ($package instanceof RootPackageInterface) {
-                        yield from self::listReflectedClassesInPaths($plugin, $io, $vendorDir, dirname($vendorDir) . DIRECTORY_SEPARATOR . $path);
-
-                        continue;
-                    }
-
-                    $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $packageName . DIRECTORY_SEPARATOR . $path, '/');
-                    if ($fileName === '' || ! file_exists($fileName)) {
-                        continue;
-                    }
-
-                    yield from self::listReflectedClassesInPaths($plugin, $io, $vendorDir, $fileName);
+            foreach (self::autoloadPaths($vendorDir, $package) as $path) {
+                /** @var class-string $class */
+                foreach (self::listClassesInPaths($path) as $class) {
+                    yield $class;
                 }
-            }
-
-            if (! array_key_exists('classmap', $autoload)) {
-                continue;
-            }
-
-            /** @var non-empty-string $path */ // phpcs:disable
-            foreach ($autoload['classmap'] as $path) {
-                if ($package instanceof RootPackageInterface) {
-                    $pathPrefix = dirname($vendorDir) . DIRECTORY_SEPARATOR;
-                    if (str_starts_with($path, $pathPrefix)) {
-                        $pathPrefix = '';
-                    }
-
-                    yield from self::listReflectedClassesInPaths($plugin, $io, $vendorDir, $pathPrefix . $path);
-                }
-
-                $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $packageName . DIRECTORY_SEPARATOR . $path, '/');
-                if ($fileName === '' || ! file_exists($fileName)) {
-                    continue;
-                }
-
-                yield from self::listReflectedClassesInPaths($plugin, $io, $vendorDir, $fileName);
             }
         }
     }
 
     /**
      * @param non-empty-string $vendorDir
-     * @param non-empty-string $path
      *
-     * @return iterable<ReflectionClass>
+     * @return iterable<non-empty-string>
      */
-    private static function listReflectedClassesInPaths(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, string $path): iterable
+    private static function autoloadPaths(string $vendorDir, PackageInterface $package): iterable
     {
-        $classReflector = self::createClassReflector($vendorDir);
-        /**
-         * @var class-string $class
-         */
-        foreach (self::listClassesInPaths($path) as $class) {
-            if (FailedReflectionsStore::has($class)) {
-                continue;
+        $autoload = $package->getAutoload();
+
+        if (array_key_exists('psr-4', $autoload)) {
+            foreach ($autoload['psr-4'] as $path) {
+                if (! is_string($path)) {
+                    continue;
+                }
+
+                if ($package instanceof RootPackageInterface) {
+                    yield dirname($vendorDir) . DIRECTORY_SEPARATOR . $path;
+
+                    continue;
+                }
+
+                $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $package->getName() . DIRECTORY_SEPARATOR . $path, '/');
+                if ($fileName === '' || ! file_exists($fileName)) {
+                    continue;
+                }
+
+                yield $fileName;
+            }
+        }
+
+        if (! array_key_exists('classmap', $autoload)) {
+            return;
+        }
+
+        /** @var non-empty-string $path */ // phpcs:disable
+        foreach ($autoload['classmap'] as $path) {
+            if ($package instanceof RootPackageInterface) {
+                $pathPrefix = dirname($vendorDir) . DIRECTORY_SEPARATOR;
+                if (str_starts_with($path, $pathPrefix)) {
+                    $pathPrefix = '';
+                }
+
+                yield $pathPrefix . $path;
             }
 
-            if (Store::cache()->hasFailedReflection($class)) {
-                FailedReflectionsStore::add($class);
-                continue;
+            $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $package->getName() . DIRECTORY_SEPARATOR . $path, '/');
+            if ($fileName !== '' && file_exists($fileName)) {
+                yield $fileName;
             }
+        }
+    }
 
-            if (ReflectionsStore::has($class)) {
-                yield ReflectionsStore::get($class);
-                continue;
-            }
+    /**
+     * @param non-empty-string $vendorDir
+     * @param class-string     $class
+     */
+    private static function reflectClass(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, string $class): ReflectionClass|null
+    {
+        if (FailedReflectionsStore::has($class)) {
+            return null;
+        }
 
-            try {
-                $reflection = (static function (ReflectionClass $reflectionClass): ReflectionClass {
-                    /**
-                     * Unit tests will fail if this line isn't here, getMethods will also do the trick
-                     * Assuming any actual class properties reading will trigger it to be loaded
-                     * Which will unit tests cause to succeed and not complain about
-                     * WyriHaximus\Broadcast\Generated\AbstractListenerProvider not being found
-                     */
-                    $reflectionClass->getInterfaces();
+        if (Store::cache()->hasFailedReflection($class)) {
+            FailedReflectionsStore::add($class);
 
-                    return $reflectionClass;
-                })($classReflector->reflectClass($class));
-                ReflectionsStore::add($class, $reflection);
-                self::rememberFileHash($reflection->getFileName() ?? '');
-                yield $reflection;
-            } catch (IdentifierNotFound $identifierNotFound) {
-                FailedReflectionsStore::add($class);
-                Store::cache()->failedReflection($class);
+            return null;
+        }
 
-                $io->write(sprintf(
-                    '<error>' . $plugin::name() . ':</error> ' . $plugin::log(LogStages::Error),
-                    sprintf(
-                        'Cannot reflect "<fg=cyan>%s</>": <fg=yellow>%s</>',
-                        $class,
-                        $identifierNotFound->getMessage(),
-                    ),
-                ));
-            }
+        if (ReflectionsStore::has($class)) {
+            return ReflectionsStore::get($class);
+        }
+
+        try {
+            $reflection = (static function (ReflectionClass $reflectionClass): ReflectionClass {
+                /**
+                 * Unit tests will fail if this line isn't here, getMethods will also do the trick
+                 * Assuming any actual class properties reading will trigger it to be loaded
+                 * Which will unit tests cause to succeed and not complain about
+                 * WyriHaximus\Broadcast\Generated\AbstractListenerProvider not being found
+                 */
+                $reflectionClass->getInterfaces();
+
+                return $reflectionClass;
+            })(self::createClassReflector($vendorDir)->reflectClass($class));
+            ReflectionsStore::add($class, $reflection);
+            self::rememberClassFile($class, $reflection->getFileName() ?? '');
+
+            return $reflection;
+        } catch (IdentifierNotFound $identifierNotFound) {
+            FailedReflectionsStore::add($class);
+            Store::cache()->failedReflection($class);
+
+            $io->write(sprintf(
+                '<error>' . $plugin::name() . ':</error> ' . $plugin::log(LogStages::Error),
+                sprintf(
+                    'Cannot reflect "<fg=cyan>%s</>": <fg=yellow>%s</>',
+                    $class,
+                    $identifierNotFound->getMessage(),
+                ),
+            ));
+
+            return null;
         }
     }
 
@@ -423,38 +455,65 @@ final class GenerativePluginExecutioner
         };
     }
 
-    private static function classFilterOutcome(ReflectionClass $class, ClassFilter $classFilter): bool
-    {
-        $fileName      = $class->getFileName();
-        $filterKey     = serialize($classFilter);
-        $cachedOutcome = Store::cache()->getClassFilterOutcome($class->getName(), $filterKey);
-        if ($cachedOutcome !== null && $fileName !== null && Store::cache()->fileHashMatches($fileName)) {
-            return $cachedOutcome;
+    /**
+     * @param class-string        $className
+     * @param list<string>        $classFilterKeyHashes
+     * @param list<ItemCollector> $collectors
+     *
+     * @return array<Item>|false|null
+     */
+    private static function tryResolveFromCache(
+        GenerativePlugin $plugin,
+        string $className,
+        array $classFilterKeyHashes,
+        array $collectors,
+    ): array|false|null {
+        if (FailedReflectionsStore::has($className) || Store::cache()->hasFailedReflection($className)) {
+            if (Store::cache()->hasFailedReflection($className)) {
+                FailedReflectionsStore::add($className);
+            }
+
+            return false;
         }
 
-        $classFilterOutcome = $classFilter($class);
-        Store::cache()->classFilterOutcome($class->getName(), $filterKey, $classFilterOutcome);
-        self::rememberFileHash($fileName ?? '');
-
-        return $classFilterOutcome;
-    }
-
-    /** @return array<Item>|null */
-    private static function tryCollectFromCache(GenerativePlugin $plugin, ReflectionClass $class): array|null
-    {
-        $fileName = $class->getFileName();
+        $fileName = Store::cache()->getClassAbsoluteFilePath($className);
         if ($fileName === null || ! Store::cache()->fileHashMatches($fileName)) {
             return null;
         }
 
-        $collectors = [...$plugin->collectors()];
-        if (! Store::cache()->hasCollectedItemsForClass($plugin::name(), $class->getName(), $collectors)) {
+        foreach ($classFilterKeyHashes as $filterKeyHash) {
+            $outcome = Store::cache()->getClassFilterOutcome($className, $filterKeyHash);
+            if ($outcome === null) {
+                return null;
+            }
+
+            if (! $outcome) {
+                return false;
+            }
+        }
+
+        return self::collectCachedItems($plugin, $className, $collectors);
+    }
+
+    /**
+     * @param class-string        $className
+     * @param list<ItemCollector> $collectors
+     *
+     * @return array<Item>|null
+     */
+    private static function collectCachedItems(GenerativePlugin $plugin, string $className, array $collectors): array|null
+    {
+        if ($collectors === []) {
+            return [];
+        }
+
+        if (! Store::cache()->hasCollectedItemsForClass($plugin::name(), $className, $collectors)) {
             return null;
         }
 
         $items = [];
         foreach ($collectors as $collector) {
-            $cachedItems = Store::cache()->getCollectedItems($plugin::name(), $class->getName(), $collector::class);
+            $cachedItems = Store::cache()->getCollectedItems($plugin::name(), $className, $collector::class);
             if ($cachedItems === null) {
                 return null;
             }
@@ -465,6 +524,21 @@ final class GenerativePluginExecutioner
         }
 
         return $items;
+    }
+
+    private static function classFilterOutcome(ReflectionClass $class, ClassFilter $classFilter, string $filterKeyHash): bool
+    {
+        $fileName      = $class->getFileName();
+        $cachedOutcome = Store::cache()->getClassFilterOutcome($class->getName(), $filterKeyHash);
+        if ($cachedOutcome !== null && $fileName !== null && Store::cache()->fileHashMatches($fileName)) {
+            return $cachedOutcome;
+        }
+
+        $classFilterOutcome = $classFilter($class);
+        Store::cache()->classFilterOutcome($class->getName(), $filterKeyHash, $classFilterOutcome);
+        self::rememberClassFile($class->getName(), $fileName ?? '');
+
+        return $classFilterOutcome;
     }
 
     private static function storeCollectedItems(
@@ -479,10 +553,11 @@ final class GenerativePluginExecutioner
         }
 
         Store::cache()->collectedItems($plugin::name(), $class->getName(), $collector::class, $serializedItems);
-        self::rememberFileHash($class->getFileName() ?? '');
+        self::rememberClassFile($class->getName(), $class->getFileName() ?? '');
     }
 
-    private static function rememberFileHash(string $fileName): void
+    /** @param class-string $class */
+    private static function rememberClassFile(string $class, string $fileName): void
     {
         if ($fileName === '') {
             return;
@@ -494,5 +569,6 @@ final class GenerativePluginExecutioner
         }
 
         Store::cache()->fileHash($fileName, $hash);
+        Store::cache()->classFilePath($class, $fileName);
     }
 }

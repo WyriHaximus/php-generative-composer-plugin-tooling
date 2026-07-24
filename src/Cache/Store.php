@@ -101,7 +101,7 @@ final class Store
                 return false;
             }
 
-            $encoded = json_encode($instance->cache);
+            $encoded = json_encode($instance->cache, JSON_PRETTY_PRINT);
             if ($encoded === false) {
                 self::logError($io, 'Failed to encode cache as JSON');
 

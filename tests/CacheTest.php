@@ -11,10 +11,13 @@ use WyriHaximus\TestUtilities\TestCase;
 
 use function dirname;
 use function file_put_contents;
+use function md5;
 use function md5_file;
 use function sys_get_temp_dir;
 use function tempnam;
 use function unlink;
+
+use const DIRECTORY_SEPARATOR;
 
 final class CacheTest extends TestCase
 {
@@ -37,6 +40,7 @@ final class CacheTest extends TestCase
             'installedJsonHash' => '',
             'fileHashes' => [],
             'classFilterOutcome' => [],
+            'classFilePaths' => [],
             'failedReflections' => [],
             'collectedItems' => [],
         ], $cache->jsonSerialize());
@@ -49,12 +53,13 @@ final class CacheTest extends TestCase
         self::assertNotFalse($file);
         file_put_contents($file, 'contents');
 
-        $root  = dirname($file) . '/';
+        $root  = dirname($file) . DIRECTORY_SEPARATOR;
         $cache = Cache::fromJSON([], $root);
         $hash  = md5_file($file);
         self::assertNotFalse($hash);
         $cache->fileHash($file, $hash);
 
+        self::assertTrue($cache->fileHashMatches($file));
         self::assertTrue($cache->fileHashMatches($file));
 
         unlink($file);
@@ -68,6 +73,55 @@ final class CacheTest extends TestCase
         $cache->classFilterOutcome('WyriHaximus\\Foo', self::class, true);
 
         self::assertTrue($cache->getClassFilterOutcome('WyriHaximus\\Foo', self::class));
+    }
+
+    #[Test]
+    public function classFilePathRoundTrips(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'cache-test-');
+        self::assertNotFalse($file);
+
+        $root  = dirname($file) . DIRECTORY_SEPARATOR;
+        $cache = Cache::fromJSON([], $root);
+        $cache->classFilePath(self::class, $file);
+
+        self::assertSame($file, $cache->getClassAbsoluteFilePath(self::class));
+
+        unlink($file);
+    }
+
+    #[Test]
+    public function classFilePathRoundTripsWithMixedDirectorySeparators(): void
+    {
+        $root = 'C:\\Users\\example\\AppData\\Local\\Temp/';
+        $file = 'C:\\Users\\example\\AppData\\Local\\Temp\\cache-test.tmp';
+
+        $cache = Cache::fromJSON([], $root);
+        $cache->classFilePath(self::class, $file);
+
+        self::assertSame(
+            str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $file),
+            $cache->getClassAbsoluteFilePath(self::class),
+        );
+    }
+
+    #[Test]
+    public function legacyClassFilterOutcomeEntriesAreMigrated(): void
+    {
+        $serializedFilter = 'O:8:"stdClass":0:{}';
+        $filterKeyHash    = md5($serializedFilter);
+
+        $cache = Cache::fromJSON([
+            'classFilterOutcome' => [
+                md5('WyriHaximus\\Foo_=_' . $serializedFilter) => [
+                    'class' => 'WyriHaximus\\Foo',
+                    'filterKey' => $serializedFilter,
+                    'outcome' => true,
+                ],
+            ],
+        ], '');
+
+        self::assertTrue($cache->getClassFilterOutcome('WyriHaximus\\Foo', $filterKeyHash));
     }
 
     #[Test]
