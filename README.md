@@ -453,7 +453,7 @@ The cache is **opt-in** and **requires no changes to your plugin**. Enable it in
   "extra": {
     "wyrihaximus": {
       "generative-composer-plugin-tooling": {
-        "cache": "var/generative-plugin-cache.json"
+        "cache": "etc/state/generative-plugin-cache.json"
       }
     }
   }
