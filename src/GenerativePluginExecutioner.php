@@ -15,6 +15,8 @@ use Composer\Package\RootPackageInterface;
 use Exception;
 use FilesystemIterator;
 use GlobIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Roave\BetterReflection\Reflection\ReflectionClass;
 use Roave\BetterReflection\Reflector\DefaultReflector;
 use Roave\BetterReflection\Reflector\Exception\IdentifierNotFound;
@@ -23,6 +25,7 @@ use Roave\BetterReflection\SourceLocator\Type\Composer\Psr\Exception\InvalidPref
 use SplFileInfo;
 use WyriHaximus\Composer\GenerativePluginTooling\Cache\Store;
 use WyriHaximus\Composer\GenerativePluginTooling\Composer\ASTLocatorStore;
+use WyriHaximus\Composer\GenerativePluginTooling\Helper\ClassFilterFileContentHash;
 use WyriHaximus\Composer\GenerativePluginTooling\Helper\ItemSerializer;
 use WyriHaximus\Lister;
 
@@ -85,6 +88,7 @@ final class GenerativePluginExecutioner
             static fn (ClassFilter $classFilter): string => md5(serialize($classFilter)),
             $classFilters,
         );
+        $filterFilesHash      = ClassFilterFileContentHash::hash($classFilters);
         $collectors           = array_values([...$plugin->collectors()]);
 
         $unfilteredPackages = [
@@ -114,7 +118,7 @@ final class GenerativePluginExecutioner
         $needsReflection = [];
         foreach (self::listClassNamesInPackages($vendorDir, ...$packages) as $className) {
             /** @var class-string $className */
-            $cachedItems = self::tryResolveFromCache($plugin, $className, $classFilterKeyHashes, $collectors);
+            $cachedItems = self::tryResolveFromCache($plugin, $className, $classFilterKeyHashes, $filterFilesHash, $collectors);
             if ($cachedItems === false) {
                 continue;
             }
@@ -129,7 +133,7 @@ final class GenerativePluginExecutioner
 
         foreach ($needsReflection as $className) {
             /** @var class-string $className */
-            $class = self::reflectClass($plugin, $io, $vendorDir, $className);
+            $class = self::reflectClass($plugin, $io, $vendorDir, $className, $filterFilesHash, ...$packages);
             if (! $class instanceof ReflectionClass) {
                 continue;
             }
@@ -272,13 +276,20 @@ final class GenerativePluginExecutioner
      * @param non-empty-string $vendorDir
      * @param class-string     $class
      */
-    private static function reflectClass(GenerativePlugin $plugin, IOInterface $io, string $vendorDir, string $class): ReflectionClass|null
-    {
+    private static function reflectClass(
+        GenerativePlugin $plugin,
+        IOInterface $io,
+        string $vendorDir,
+        string $class,
+        string $filterFilesHash,
+        PackageInterface ...$packages,
+    ): ReflectionClass|null {
         if (FailedReflectionsStore::has($class)) {
             return null;
         }
 
-        if (Store::cache()->hasFailedReflection($class)) {
+        $classFileHash = self::classFileContentHash($class);
+        if (Store::cache()->hasFailedReflection($class, $classFileHash, $filterFilesHash)) {
             FailedReflectionsStore::add($class);
 
             return null;
@@ -306,7 +317,7 @@ final class GenerativePluginExecutioner
             return $reflection;
         } catch (IdentifierNotFound $identifierNotFound) {
             FailedReflectionsStore::add($class);
-            Store::cache()->failedReflection($class);
+            self::rememberFailedReflection($class, $filterFilesHash, $vendorDir, ...$packages);
 
             $io->write(sprintf(
                 '<error>' . $plugin::name() . ':</error> ' . $plugin::log(LogStages::Error),
@@ -466,10 +477,12 @@ final class GenerativePluginExecutioner
         GenerativePlugin $plugin,
         string $className,
         array $classFilterKeyHashes,
+        string $filterFilesHash,
         array $collectors,
     ): array|false|null {
-        if (FailedReflectionsStore::has($className) || Store::cache()->hasFailedReflection($className)) {
-            if (Store::cache()->hasFailedReflection($className)) {
+        $classFileHash = self::classFileContentHash($className);
+        if (FailedReflectionsStore::has($className) || Store::cache()->hasFailedReflection($className, $classFileHash, $filterFilesHash)) {
+            if (Store::cache()->hasFailedReflection($className, $classFileHash, $filterFilesHash)) {
                 FailedReflectionsStore::add($className);
             }
 
@@ -570,5 +583,144 @@ final class GenerativePluginExecutioner
 
         Store::cache()->fileHash($fileName, $hash);
         Store::cache()->classFilePath($class, $fileName);
+    }
+
+    /**
+     * @param class-string     $class
+     * @param non-empty-string $vendorDir
+     */
+    private static function rememberFailedReflection(
+        string $class,
+        string $filterFilesHash,
+        string $vendorDir,
+        PackageInterface ...$packages,
+    ): void {
+        $fileName      = self::locateClassFileName($class, $vendorDir, ...$packages);
+        $classFileHash = '';
+        if ($fileName !== '' && file_exists($fileName)) {
+            $hash = md5_file($fileName);
+            if (is_string($hash)) {
+                $classFileHash = $hash;
+                Store::cache()->fileHash($fileName, $hash);
+                Store::cache()->classFilePath($class, $fileName);
+            }
+        }
+
+        Store::cache()->failedReflection($class, $classFileHash, $filterFilesHash);
+    }
+
+    /** @param class-string $class */
+    private static function classFileContentHash(string $class): string
+    {
+        $fileName = Store::cache()->getClassAbsoluteFilePath($class);
+        if ($fileName === null || ! file_exists($fileName)) {
+            return '';
+        }
+
+        $hash = md5_file($fileName);
+
+        return is_string($hash) ? $hash : '';
+    }
+
+    /**
+     * @param class-string     $class
+     * @param non-empty-string $vendorDir
+     */
+    private static function locateClassFileName(string $class, string $vendorDir, PackageInterface ...$packages): string
+    {
+        $cached = Store::cache()->getClassAbsoluteFilePath($class);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        foreach ($packages as $package) {
+            $autoload = $package->getAutoload();
+            if (array_key_exists('psr-4', $autoload)) {
+                foreach ($autoload['psr-4'] as $namespace => $paths) {
+                    foreach (is_array($paths) ? $paths : [$paths] as $path) {
+                        if (! str_starts_with($class, $namespace)) {
+                            continue;
+                        }
+
+                        $basePath = $package instanceof RootPackageInterface
+                            ? dirname($vendorDir) . DIRECTORY_SEPARATOR . $path
+                            : $vendorDir . DIRECTORY_SEPARATOR . $package->getName() . DIRECTORY_SEPARATOR . $path;
+
+                        $possibleFilePath  = $basePath . substr($class, strlen($namespace));
+                        $possibleFilePath  = str_replace('\\', DIRECTORY_SEPARATOR, $possibleFilePath) . '.php';
+
+                        if (file_exists($possibleFilePath)) {
+                            return $possibleFilePath;
+                        }
+                    }
+                }
+            }
+
+            if (! array_key_exists('classmap', $autoload)) {
+                continue;
+            }
+
+            foreach ($autoload['classmap'] as $classmapPath) {
+                $pathPrefix = $package instanceof RootPackageInterface
+                    ? dirname($vendorDir) . DIRECTORY_SEPARATOR
+                    : $vendorDir . DIRECTORY_SEPARATOR . $package->getName() . DIRECTORY_SEPARATOR;
+
+                $absolutePath = str_starts_with($classmapPath, $pathPrefix)
+                    ? $classmapPath
+                    : $pathPrefix . $classmapPath;
+
+                if (is_file($absolutePath)) {
+                    foreach (Lister::classesInFiles($absolutePath) as $listedClass) {
+                        if ($listedClass === $class) {
+                            return $absolutePath;
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (! is_dir($absolutePath)) {
+                    continue;
+                }
+
+                $locatedFile = self::locateClassInClassmapDirectory($class, $absolutePath);
+                if ($locatedFile !== '') {
+                    return $locatedFile;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param class-string     $class
+     * @param non-empty-string $directory
+     */
+    private static function locateClassInClassmapDirectory(string $class, string $directory): string
+    {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($iterator as $file) {
+            assert($file instanceof SplFileInfo);
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $pathname = $file->getPathname();
+            if ($pathname === '') {
+                continue;
+            }
+
+            foreach (Lister::classesInFiles($pathname) as $listedClass) {
+                if ($listedClass === $class) {
+                    return $pathname;
+                }
+            }
+        }
+
+        return '';
     }
 }

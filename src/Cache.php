@@ -6,17 +6,17 @@ namespace WyriHaximus\Composer\GenerativePluginTooling;
 
 use JsonSerializable;
 
-use function array_fill_keys;
+use function array_is_list;
 use function array_key_exists;
-use function array_keys;
 use function file_exists;
 use function is_array;
 use function is_bool;
 use function is_string;
+use function ksort;
 use function md5;
 use function md5_file;
-use function str_starts_with;
 use function str_replace;
+use function str_starts_with;
 use function strlen;
 use function substr;
 
@@ -27,7 +27,7 @@ final class Cache implements JsonSerializable
     /**
      * @param array<string, string>                                           $fileHashes
      * @param array<string, bool>                                             $classFilterOutcome
-     * @param array<class-string, true>                                       $failedReflections
+     * @param array<string, true>                                             $failedReflections
      * @param array<string, array<string, array<string, array<int, string>>>> $collectedItems
      * @param array<class-string, string>                                     $classFilePaths
      * @param array<string, bool>                                             $fileHashMatchMemo
@@ -76,11 +76,19 @@ final class Cache implements JsonSerializable
             $classFilterOutcome[$key] = $entry['outcome'];
         }
 
-        /** @var list<class-string> $failedReflectionClassNames */
-        $failedReflectionClassNames = $json['failedReflections'] ?? [];
+        /** @var array<string, true> $failedReflections */
+        $failedReflections = [];
+        /** @var array<mixed> $rawFailedReflections */
+        $rawFailedReflections = $json['failedReflections'] ?? [];
+        if (! array_is_list($rawFailedReflections)) {
+            foreach ($rawFailedReflections as $key => $value) {
+                if (! is_string($key) || $value !== true) {
+                    continue;
+                }
 
-        /** @var array<class-string, true> $failedReflections */
-        $failedReflections = array_fill_keys($failedReflectionClassNames, true);
+                $failedReflections[$key] = true;
+            }
+        }
 
         /** @var array<string, array<string, array<string, array<int, string>>>> $collectedItems */
         $collectedItems = $json['collectedItems'] ?? [];
@@ -125,6 +133,15 @@ final class Cache implements JsonSerializable
         }
 
         $this->installedJsonHash = $hash;
+    }
+
+    public function bustOnInstalledJsonChange(): void
+    {
+        if (! $this->enabled) {
+            return;
+        }
+
+        $this->collectedItems = [];
     }
 
     public function fileHash(string $filePath, string $hash): void
@@ -179,23 +196,29 @@ final class Cache implements JsonSerializable
     }
 
     /** @param class-string $class */
-    public function failedReflection(string $class): void
+    public function failedReflection(string $class, string $classFileHash, string $filterFilesHash): void
     {
         if (! $this->enabled) {
             return;
         }
 
-        $this->failedReflections[$class] = true;
+        $this->failedReflections[$this->failedReflectionKey($class, $classFileHash, $filterFilesHash)] = true;
     }
 
     /** @param class-string $class */
-    public function hasFailedReflection(string $class): bool
+    public function hasFailedReflection(string $class, string $classFileHash, string $filterFilesHash): bool
     {
         if (! $this->enabled) {
             return false;
         }
 
-        return array_key_exists($class, $this->failedReflections);
+        return array_key_exists($this->failedReflectionKey($class, $classFileHash, $filterFilesHash), $this->failedReflections);
+    }
+
+    /** @param class-string $class */
+    private function failedReflectionKey(string $class, string $classFileHash, string $filterFilesHash): string
+    {
+        return md5($class . '_=_' . $classFileHash . '_=_' . $filterFilesHash);
     }
 
     /** @param class-string $class */
@@ -280,23 +303,45 @@ final class Cache implements JsonSerializable
         return true;
     }
 
-    /** @return list<class-string> */
-    public function failedReflectionClasses(): array
-    {
-        return [...array_keys($this->failedReflections)];
-    }
-
     /** @return array<string, mixed> */
     public function jsonSerialize(): array
     {
-        return [
+        $data = [
             'installedJsonHash' => $this->installedJsonHash,
-            'fileHashes' => $this->fileHashes,
-            'classFilterOutcome' => $this->classFilterOutcome,
-            'classFilePaths' => $this->classFilePaths,
-            'failedReflections' => [...array_keys($this->failedReflections)],
-            'collectedItems' => $this->collectedItems,
+            'fileHashes' => $this->sortKeysRecursively($this->fileHashes),
+            'classFilterOutcome' => $this->sortKeysRecursively($this->classFilterOutcome),
+            'classFilePaths' => $this->sortKeysRecursively($this->classFilePaths),
+            'failedReflections' => $this->sortKeysRecursively($this->failedReflections),
+            'collectedItems' => $this->sortKeysRecursively($this->collectedItems),
         ];
+
+        ksort($data);
+
+        return $data;
+    }
+
+    /**
+     * @param array<mixed> $array
+     *
+     * @return array<mixed>
+     */
+    private function sortKeysRecursively(array $array): array
+    {
+        if ($array === [] || array_is_list($array)) {
+            return $array;
+        }
+
+        ksort($array);
+
+        foreach ($array as $key => $value) {
+            if (! is_array($value)) {
+                continue;
+            }
+
+            $array[$key] = $this->sortKeysRecursively($value);
+        }
+
+        return $array;
     }
 
     private function relativePath(string $filePath): string
@@ -305,7 +350,7 @@ final class Cache implements JsonSerializable
             return $filePath;
         }
 
-        $root             = $this->normalizePath($this->root);
+        $root           = $this->normalizePath($this->root);
         $normalizedPath = $this->normalizePath($filePath);
 
         if (! str_starts_with($normalizedPath, $root)) {

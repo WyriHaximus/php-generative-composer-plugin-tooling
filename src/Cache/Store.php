@@ -7,7 +7,6 @@ namespace WyriHaximus\Composer\GenerativePluginTooling\Cache;
 use Composer\IO\IOInterface;
 use Throwable;
 use WyriHaximus\Composer\GenerativePluginTooling\Cache;
-use WyriHaximus\Composer\GenerativePluginTooling\FailedReflectionsStore;
 
 use function assert;
 use function dirname;
@@ -24,6 +23,7 @@ use function mkdir;
 use function rtrim;
 
 use const DIRECTORY_SEPARATOR;
+use const JSON_PRETTY_PRINT;
 
 final class Store
 {
@@ -52,14 +52,10 @@ final class Store
         $installedJsonPath = $this->installedJsonPath();
         $cache             = Cache::fromJSON($json, $this->cacheFilePath->root);
         if (! $cache->installedJsonHashMatches($installedJsonPath)) {
-            $cache = Cache::fromJSON([], $this->cacheFilePath->root);
+            $cache->bustOnInstalledJsonChange();
         }
 
         $this->cache = $cache;
-
-        foreach ($this->cache->failedReflectionClasses() as $class) {
-            FailedReflectionsStore::add($class);
-        }
     }
 
     public static function setUp(CacheFilePath $cacheFilePath, string $vendorDir): void
