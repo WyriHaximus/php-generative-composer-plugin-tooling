@@ -13,6 +13,7 @@ use function dirname;
 use function file_put_contents;
 use function md5;
 use function md5_file;
+use function str_replace;
 use function sys_get_temp_dir;
 use function tempnam;
 use function unlink;

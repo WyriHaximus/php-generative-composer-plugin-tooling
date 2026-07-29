@@ -24,6 +24,7 @@ use function mkdir;
 use function rtrim;
 
 use const DIRECTORY_SEPARATOR;
+use const JSON_PRETTY_PRINT;
 
 final class Store
 {
