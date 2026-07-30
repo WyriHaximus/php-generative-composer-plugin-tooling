@@ -15,8 +15,8 @@ use function is_bool;
 use function is_string;
 use function md5;
 use function md5_file;
-use function str_starts_with;
 use function str_replace;
+use function str_starts_with;
 use function strlen;
 use function substr;
 
@@ -305,7 +305,7 @@ final class Cache implements JsonSerializable
             return $filePath;
         }
 
-        $root             = $this->normalizePath($this->root);
+        $root           = $this->normalizePath($this->root);
         $normalizedPath = $this->normalizePath($filePath);
 
         if (! str_starts_with($normalizedPath, $root)) {
