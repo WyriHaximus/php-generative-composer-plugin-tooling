@@ -7,12 +7,14 @@ namespace WyriHaximus\Composer\GenerativePluginTooling;
 use JsonSerializable;
 
 use function array_fill_keys;
+use function array_is_list;
 use function array_key_exists;
 use function array_keys;
 use function file_exists;
 use function is_array;
 use function is_bool;
 use function is_string;
+use function ksort;
 use function md5;
 use function md5_file;
 use function str_replace;
@@ -289,14 +291,39 @@ final class Cache implements JsonSerializable
     /** @return array<string, mixed> */
     public function jsonSerialize(): array
     {
-        return [
+        /** @var array<string, mixed> $sorted */
+        $sorted = self::ksortStringKeys([
             'installedJsonHash' => $this->installedJsonHash,
             'fileHashes' => $this->fileHashes,
             'classFilterOutcome' => $this->classFilterOutcome,
             'classFilePaths' => $this->classFilePaths,
             'failedReflections' => [...array_keys($this->failedReflections)],
             'collectedItems' => $this->collectedItems,
-        ];
+        ]);
+
+        return $sorted;
+    }
+
+    /**
+     * @param array<mixed> $data
+     *
+     * @return array<mixed>
+     */
+    private static function ksortStringKeys(array $data): array
+    {
+        foreach ($data as $key => $value) {
+            if (! is_array($value)) {
+                continue;
+            }
+
+            $data[$key] = self::ksortStringKeys($value);
+        }
+
+        if ($data !== [] && ! array_is_list($data)) {
+            ksort($data);
+        }
+
+        return $data;
     }
 
     private function relativePath(string $filePath): string
