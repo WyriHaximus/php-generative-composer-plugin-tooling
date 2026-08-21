@@ -79,10 +79,6 @@ final class Store
 
     public static function store(IOInterface $io): bool
     {
-        if (! self::isEnabled()) {
-            return false;
-        }
-
         $instance = self::$instance;
         if (! $instance instanceof self) {
             return false;

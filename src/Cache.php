@@ -11,6 +11,7 @@ use function array_is_list;
 use function array_key_exists;
 use function array_keys;
 use function file_exists;
+use function implode;
 use function is_array;
 use function is_bool;
 use function is_string;
@@ -72,7 +73,7 @@ final class Cache implements JsonSerializable
             }
 
             if (is_string($entry['filterKey'] ?? null)) {
-                $key = md5($entry['class'] . '_=_' . md5($entry['filterKey']));
+                $key = self::classFilterOutcomeKey($entry['class'], md5($entry['filterKey']));
             }
 
             $classFilterOutcome[$key] = $entry['outcome'];
@@ -159,16 +160,9 @@ final class Cache implements JsonSerializable
 
     public function getClassFilterOutcome(string $class, string $filterKeyHash): bool|null
     {
-        if (! $this->enabled) {
-            return null;
-        }
-
-        $key = md5($class . '_=_' . $filterKeyHash);
-        if (! array_key_exists($key, $this->classFilterOutcome)) {
-            return null;
-        }
-
-        return $this->classFilterOutcome[$key];
+        return $this->enabled
+            ? ($this->classFilterOutcome[self::classFilterOutcomeKey($class, $filterKeyHash)] ?? null)
+            : null;
     }
 
     public function classFilterOutcome(string $class, string $filterKeyHash, bool $outcome): void
@@ -177,7 +171,12 @@ final class Cache implements JsonSerializable
             return;
         }
 
-        $this->classFilterOutcome[md5($class . '_=_' . $filterKeyHash)] = $outcome;
+        $this->classFilterOutcome[self::classFilterOutcomeKey($class, $filterKeyHash)] = $outcome;
+    }
+
+    private static function classFilterOutcomeKey(string $class, string $filterKeyHash): string
+    {
+        return md5(implode('_=_', [$class, $filterKeyHash]));
     }
 
     /** @param class-string $class */
@@ -249,11 +248,7 @@ final class Cache implements JsonSerializable
             return null;
         }
 
-        if (! $this->hasCollectedItems($plugin, $class, $collector)) {
-            return null;
-        }
-
-        return $this->collectedItems[$plugin][$class][$collector];
+        return $this->collectedItems[$plugin][$class][$collector] ?? null;
     }
 
     /** @param class-string $collector */
@@ -285,7 +280,10 @@ final class Cache implements JsonSerializable
     /** @return list<class-string> */
     public function failedReflectionClasses(): array
     {
-        return [...array_keys($this->failedReflections)];
+        /** @var list<class-string> $classes */
+        $classes = array_keys($this->failedReflections);
+
+        return $classes;
     }
 
     /** @return array<string, mixed> */
@@ -297,7 +295,7 @@ final class Cache implements JsonSerializable
             'fileHashes' => $this->fileHashes,
             'classFilterOutcome' => $this->classFilterOutcome,
             'classFilePaths' => $this->classFilePaths,
-            'failedReflections' => [...array_keys($this->failedReflections)],
+            'failedReflections' => $this->failedReflectionClasses(),
             'collectedItems' => $this->collectedItems,
         ]);
 
@@ -328,14 +326,10 @@ final class Cache implements JsonSerializable
 
     private function relativePath(string $filePath): string
     {
-        if ($this->root === '') {
-            return $filePath;
-        }
-
         $root           = $this->normalizePath($this->root);
         $normalizedPath = $this->normalizePath($filePath);
 
-        if (! str_starts_with($normalizedPath, $root)) {
+        if ($root === '' || ! str_starts_with($normalizedPath, $root)) {
             return $filePath;
         }
 

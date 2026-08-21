@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use WyriHaximus\Composer\GenerativePluginTooling\Helper\TwigFile;
 use WyriHaximus\Composer\GenerativePluginTooling\Helper\TwigFileDoesNotExist;
+use WyriHaximus\Tests\Composer\GenerativePluginTooling\Support\FilesystemFixtures;
 use WyriHaximus\TestUtilities\TestCase;
 
 use function base_convert;
@@ -52,6 +53,25 @@ final class TwigFileTest extends TestCase
     public function twigTemplateFileDoesNotExist(): void
     {
         $templateFile = 'does-not-exist.twig';
+        $this->expectExceptionObject(TwigFileDoesNotExist::create($templateFile));
+
+        try {
+            TwigFile::render(
+                $templateFile,
+                $this->getTmpDir() . 'dark.bier',
+                [],
+            );
+        } catch (TwigFileDoesNotExist $reThrowMe) {
+            self::assertSame($templateFile, $reThrowMe->twigTemplateFile);
+
+            throw $reThrowMe;
+        }
+    }
+
+    #[Test]
+    public function twigTemplateFileExistsButCannotBeRead(): void
+    {
+        $templateFile = FilesystemFixtures::pathThatExistsButCannotBeReadAsFile();
         $this->expectExceptionObject(TwigFileDoesNotExist::create($templateFile));
 
         try {
