@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1fb961b81cc885461166772a28b5cd0a",
+    "content-hash": "5f7f2fe4ce681fdde8356c934ddabd65",
     "packages": [
         {
             "name": "jetbrains/phpstorm-stubs",
@@ -9355,16 +9355,16 @@
         },
         {
             "name": "wyrihaximus/makefiles",
-            "version": "0.14.5",
+            "version": "0.14.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WyriHaximus/Makefiles.git",
-                "reference": "5d2b23f58758484ee6232667dd7acdb2306707df"
+                "reference": "5429f0ecb0b7537efacb4f5ad5c8859e468a727e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/WyriHaximus/Makefiles/zipball/5d2b23f58758484ee6232667dd7acdb2306707df",
-                "reference": "5d2b23f58758484ee6232667dd7acdb2306707df",
+                "url": "https://api.github.com/repos/WyriHaximus/Makefiles/zipball/5429f0ecb0b7537efacb4f5ad5c8859e468a727e",
+                "reference": "5429f0ecb0b7537efacb4f5ad5c8859e468a727e",
                 "shasum": ""
             },
             "require": {
@@ -9405,7 +9405,7 @@
             "description": "🧱 Makefile building blocks",
             "support": {
                 "issues": "https://github.com/WyriHaximus/Makefiles/issues",
-                "source": "https://github.com/WyriHaximus/Makefiles/tree/0.14.5"
+                "source": "https://github.com/WyriHaximus/Makefiles/tree/0.14.6"
             },
             "funding": [
                 {
@@ -9413,7 +9413,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-26T05:34:35+00:00"
+            "time": "2026-08-26T20:51:39+00:00"
         },
         {
             "name": "wyrihaximus/phpstan-no-safe",
