@@ -12,7 +12,6 @@ use Composer\Package\Loader\ArrayLoader;
 use Composer\Package\Loader\JsonLoader;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackageInterface;
-use Exception;
 use FilesystemIterator;
 use GlobIterator;
 use Roave\BetterReflection\Reflection\ReflectionClass;
@@ -20,6 +19,7 @@ use Roave\BetterReflection\Reflector\DefaultReflector;
 use Roave\BetterReflection\Reflector\Exception\IdentifierNotFound;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Factory\MakeLocatorForComposerJsonAndInstalledJson;
 use Roave\BetterReflection\SourceLocator\Type\Composer\Psr\Exception\InvalidPrefixMapping;
+use RuntimeException;
 use SplFileInfo;
 use WyriHaximus\Composer\GenerativePluginTooling\Cache\Store;
 use WyriHaximus\Composer\GenerativePluginTooling\Composer\ASTLocatorStore;
@@ -32,7 +32,6 @@ use function array_values;
 use function assert;
 use function count;
 use function dirname;
-use function explode;
 use function file_exists;
 use function file_get_contents;
 use function is_array;
@@ -45,6 +44,7 @@ use function md5;
 use function md5_file;
 use function microtime;
 use function mkdir;
+use function preg_match;
 use function round;
 use function rtrim;
 use function serialize;
@@ -172,7 +172,7 @@ final class GenerativePluginExecutioner
     ): string {
         $vendorDir = $composerConfig->get('vendor-dir');
         if (! file_exists($vendorDir)) {
-            throw new Exception('vendor-dir most be a string');
+            throw new RuntimeException('vendor-dir most be a string');
         }
 
         // You're on your own
@@ -232,12 +232,12 @@ final class GenerativePluginExecutioner
                 }
 
                 if ($package instanceof RootPackageInterface) {
-                    yield dirname($vendorDir) . DIRECTORY_SEPARATOR . $path;
+                    yield self::normalizePath(dirname($vendorDir) . DIRECTORY_SEPARATOR . $path);
 
                     continue;
                 }
 
-                $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $package->getName() . DIRECTORY_SEPARATOR . $path, '/');
+                $fileName = self::packagePath($vendorDir, $package, $path);
                 if ($fileName === '' || ! file_exists($fileName)) {
                     continue;
                 }
@@ -253,19 +253,40 @@ final class GenerativePluginExecutioner
         /** @var non-empty-string $path */ // phpcs:disable
         foreach ($autoload['classmap'] as $path) {
             if ($package instanceof RootPackageInterface) {
-                $pathPrefix = dirname($vendorDir) . DIRECTORY_SEPARATOR;
-                if (str_starts_with($path, $pathPrefix)) {
+                $normalizedPath = self::normalizePath($path);
+                $pathPrefix     = dirname($vendorDir) . DIRECTORY_SEPARATOR;
+                if (str_starts_with($normalizedPath, $pathPrefix)) {
                     $pathPrefix = '';
                 }
 
-                yield $pathPrefix . $path;
+                yield self::normalizePath($pathPrefix . $normalizedPath);
             }
 
-            $fileName = rtrim($vendorDir . DIRECTORY_SEPARATOR . $package->getName() . DIRECTORY_SEPARATOR . $path, '/');
+            $fileName = self::packagePath($vendorDir, $package, $path);
             if ($fileName !== '' && file_exists($fileName)) {
                 yield $fileName;
             }
         }
+    }
+
+    private static function packagePath(string $vendorDir, PackageInterface $package, string $path): string
+    {
+        return self::normalizePath(
+            $vendorDir
+            . DIRECTORY_SEPARATOR
+            . $package->getName()
+            . DIRECTORY_SEPARATOR
+            . $path,
+        );
+    }
+
+    /** @return non-empty-string */
+    private static function normalizePath(string $path): string
+    {
+        /** @var non-empty-string $normalized */
+        $normalized = rtrim(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $path), '/\\');
+
+        return $normalized;
     }
 
     /**
@@ -350,9 +371,14 @@ final class GenerativePluginExecutioner
 
         foreach (new GlobIterator($vendorDir . '/*/*/composer.json', FilesystemIterator::KEY_AS_FILENAME | FilesystemIterator::SKIP_DOTS) as $node) {
             assert($node instanceof SplFileInfo);
-            $composerJson = file_get_contents($node->getRealPath());
-            if ($composerJson === false) {
+            $realPath = $node->getRealPath();
+            if (! is_string($realPath) || ! is_file($realPath)) {
                 continue;
+            }
+
+            $composerJson = file_get_contents($realPath);
+            if ($composerJson === false) { // @codeCoverageIgnore
+                continue; // @codeCoverageIgnore
             }
 
             $json = json_decode($composerJson, true);
@@ -387,19 +413,41 @@ final class GenerativePluginExecutioner
             return ClassReflectorStore::get($vendorDir);
         }
 
-        retry:
         try {
-            $reflector = new DefaultReflector(
-                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), ASTLocatorStore::ASTLocator()),
-            );
-
-            ClassReflectorStore::add($vendorDir, $reflector);
+            return self::buildClassReflector($vendorDir);
         } catch (InvalidPrefixMapping $invalidPrefixMapping) {
-            mkdir(explode('" is not a', explode('" for prefix "', $invalidPrefixMapping->getMessage())[1])[0], recursive: true);
-            goto retry;
+            $path = self::missingAutoloadDirectoryFromException($invalidPrefixMapping);
+            if (! file_exists($path)) {
+                mkdir($path, recursive: true);
+            }
+
+            return self::buildClassReflector($vendorDir);
         }
+    }
+
+    /** @param non-empty-string $vendorDir */
+    private static function buildClassReflector(string $vendorDir): DefaultReflector
+    {
+        $reflector = new DefaultReflector(
+            (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), ASTLocatorStore::ASTLocator()),
+        );
+
+        ClassReflectorStore::add($vendorDir, $reflector);
 
         return $reflector;
+    }
+
+    /** @return non-empty-string */
+    private static function missingAutoloadDirectoryFromException(InvalidPrefixMapping $invalidPrefixMapping): string
+    {
+        if (preg_match('/ for prefix "(.*)" is not a directory$/', $invalidPrefixMapping->getMessage(), $matches) !== 1) {
+            throw $invalidPrefixMapping;
+        }
+
+        /** @var non-empty-string $path */
+        $path = $matches[1];
+
+        return $path;
     }
 
     /** @return non-empty-string */
@@ -407,7 +455,7 @@ final class GenerativePluginExecutioner
     {
         $vendorDir = $composer->getConfig()->get('vendor-dir');
         if ($vendorDir === '' || ! file_exists($vendorDir)) {
-            throw new Exception('vendor-dir most be a string');
+            throw new RuntimeException('vendor-dir most be a string');
         }
 
         return $vendorDir;
@@ -442,7 +490,7 @@ final class GenerativePluginExecutioner
                         $possibleFilePath .= $path;
                         $possibleFilePath .= substr($class, strlen($namespace));
                         $possibleFilePath .= '.php';
-                        $possibleFilePath  = str_replace('\\', DIRECTORY_SEPARATOR, $possibleFilePath);
+                        $possibleFilePath  = self::normalizePath($possibleFilePath);
 
                         if (! file_exists($possibleFilePath)) {
                             continue;

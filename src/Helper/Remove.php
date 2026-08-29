@@ -36,8 +36,8 @@ final class Remove
         $directoryIterator = new FilesystemIterator($directory);
 
         foreach ($directoryIterator as $node) {
-            if (! $node instanceof SplFileInfo) {
-                continue;
+            if (! $node instanceof SplFileInfo) { // @codeCoverageIgnore
+                continue; // @codeCoverageIgnore
             }
 
             if (is_dir($node->getPathname())) {
@@ -51,8 +51,8 @@ final class Remove
                 continue;
             }
 
-            if (! is_file($node->getPathname())) {
-                continue;
+            if (! is_file($node->getPathname())) { // @codeCoverageIgnore
+                continue; // @codeCoverageIgnore
             }
 
             self::file($node->getPathname());

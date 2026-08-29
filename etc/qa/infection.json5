@@ -17,105 +17,62 @@
     "ignoreMsiWithNoMutations": true,
     "mutators": {
         "@default": true,
-        "Concat": {
+        "ArrayItemRemoval": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::loadVendorDirPackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::locateRootPackageInstallPath"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilterOutcomeKey::179"
             ]
         },
-        "ConcatOperandRemoval": {
+        "FalseValue": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::loadVendorDirPackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::autoloadablePackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::locateRootPackageInstallPath"
-            ]
-        },
-        "Continue_": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::execute",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::loadVendorDirPackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::autoloadablePackages"
-            ]
-        },
-        "DecrementInteger": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::execute",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::createClassReflector"
-            ]
-        },
-        "Foreach_": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::loadVendorDirPackages"
-            ]
-        },
-        "FunctionCallRemoval": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::execute",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::getVendorDir",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::createClassReflector"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasCollectedItemsForClass::268",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasFailedReflection::196"
             ]
         },
         "Identical": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::locateRootPackageInstallPath",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages"
-            ]
-        },
-        "IncrementInteger": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::execute",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::getVendorDir",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::createClassReflector"
-            ]
-        },
-        "LogicalAnd": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::autoloadablePackages"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205"
             ]
         },
         "LogicalNot": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::autoloadablePackages",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilterOutcome::170",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::collectedItems::233",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::failedReflection::185",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::fileHash::135",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::getClassAbsoluteFilePath::215",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasCollectedItemsForClass::267"
             ]
         },
         "LogicalOrAllSubExprNegation": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205"
             ]
         },
         "LogicalOrNegation": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205"
             ]
         },
         "LogicalOr": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205"
             ]
         },
-        "Minus": {
+        "ReturnRemoval": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::execute"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::206",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::collectedItems::234",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::failedReflection::186",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::fileHash::136",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::getClassAbsoluteFilePath::216",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasCollectedItemsForClass::268",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasFailedReflection::196"
             ]
         },
-        "RoundingFamily": {
+        "Ternary": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::execute"
-            ]
-        },
-        "Throw_": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::getVendorDir",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::locateRootPackageInstallPath"
-            ]
-        },
-        "UnwrapRtrim": {
-            "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\GenerativePluginExecutioner::listClassesInPackages"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::getClassFilterOutcome::163"
             ]
         }
     }

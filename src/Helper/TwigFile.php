@@ -30,7 +30,8 @@ final class TwigFile
             throw TwigFileDoesNotExist::create($templateFile);
         }
 
-        $templateContents = file_get_contents($templateFile);
+        /** @phpstan-ignore ergebnis.noErrorSuppression */
+        $templateContents = @file_get_contents($templateFile);
         if (! is_string($templateContents)) {
             throw TwigFileDoesNotExist::create($templateFile);
         }

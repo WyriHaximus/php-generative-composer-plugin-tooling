@@ -33,4 +33,10 @@ final class TestIo extends NullIO
     {
         $this->output->write($messages, $newline, $verbosity & StreamOutput::OUTPUT_RAW);
     }
+
+    /** @inheritDoc */
+    public function writeError($messages, bool $newline = true, int $verbosity = self::NORMAL): void
+    {
+        $this->output->write($messages, $newline, $verbosity & StreamOutput::OUTPUT_RAW);
+    }
 }

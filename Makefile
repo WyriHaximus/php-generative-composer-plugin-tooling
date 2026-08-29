@@ -445,7 +445,7 @@ composer-validate: ## Ensure we don't require any package we don't use in this p
 	$(DOCKER_SHELL) composer validate
 
 syntax-php: ## Lint PHP syntax ##*ILH*##
-	$(DOCKER_RUN) vendor/bin/parallel-lint --exclude vendor .
+	$(DOCKER_RUN) vendor/bin/parallel-lint --exclude vendor --exclude var .
 
 composer-normalize: ## Normalize composer.json ##*I*##
 	@before="$$( $(DOCKER_RUN) php -r 'echo hash_file("sha512", "composer.json");' )"; \

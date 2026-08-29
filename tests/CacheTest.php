@@ -8,16 +8,15 @@ use PHPUnit\Framework\Attributes\Test;
 use ReflectionProperty;
 use WyriHaximus\Composer\GenerativePluginTooling\Cache;
 use WyriHaximus\Composer\GenerativePluginTooling\Helper\ItemSerializer;
+use WyriHaximus\Tests\Composer\GenerativePluginTooling\Support\FilesystemFixtures;
+use WyriHaximus\Tests\Composer\GenerativePluginTooling\Support\SuppressExpectedErrors;
 use WyriHaximus\TestUtilities\TestCase;
 
-use function chmod;
 use function dirname;
 use function file_put_contents;
 use function ksort;
 use function md5;
 use function md5_file;
-use function restore_error_handler;
-use function set_error_handler;
 use function str_replace;
 use function sys_get_temp_dir;
 use function tempnam;
@@ -46,6 +45,7 @@ final class CacheTest extends TestCase
         $cache->classFilterOutcome(self::class, self::class, true);
         $cache->failedReflection(self::class);
         $cache->classFilePath(self::class, __FILE__);
+        $cache->classFilePath(self::class, '');
         $cache->setInstalledJsonHash(__FILE__);
         $cache->collectedItems('plugin/name', self::class, self::class, [ItemSerializer::serialize(new Item('event', self::class, 'method', false, false))]);
 
@@ -62,11 +62,21 @@ final class CacheTest extends TestCase
     #[Test]
     public function fromJSONCreatesEnabledCache(): void
     {
+        self::assertSame([
+            'classFilePaths' => [],
+            'classFilterOutcome' => [],
+            'collectedItems' => [],
+            'failedReflections' => [],
+            'fileHashes' => [],
+            'installedJsonHash' => '',
+        ], Cache::fromJSON([], '')->jsonSerialize());
+
         $cache = Cache::fromJSON([], '');
 
         self::assertTrue($cache->isEnabled());
         $cache->fileHash(__FILE__, 'hash');
         self::assertTrue($cache->fileHashMatches(__FILE__));
+        self::assertSame([__FILE__ => 'hash'], $cache->jsonSerialize()['fileHashes']);
     }
 
     #[Test]
@@ -103,6 +113,14 @@ final class CacheTest extends TestCase
         self::assertFalse($cache->hasCollectedItemsForClass('plugin/name', self::class, []));
 
         unlink($file);
+    }
+
+    #[Test]
+    public function disabledCacheHasFailedReflectionIgnoresStoredClasses(): void
+    {
+        $cache = new Cache('', [], [], [self::class => true], [], [], '', false, []);
+
+        self::assertFalse($cache->hasFailedReflection(self::class));
     }
 
     #[Test]
@@ -202,16 +220,39 @@ final class CacheTest extends TestCase
     }
 
     #[Test]
-    public function classFilterOutcomeRoundTrips(): void
+    public function getCollectedItemsReturnsNullWhenDisabledEvenWithData(): void
     {
+        $cache = new Cache(
+            '',
+            [],
+            [],
+            [],
+            ['plugin/name' => [self::class => [Collector::class => ['item']]]],
+            [],
+            '',
+            false,
+            [],
+        );
+
+        self::assertNull($cache->getCollectedItems('plugin/name', self::class, Collector::class));
+    }
+
+    #[Test]
+    public function relativePathWithEmptyRootKeepsAbsoluteFileHashKeys(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'cache-empty-root-');
+        self::assertNotFalse($file);
+        file_put_contents($file, 'contents');
+
         $cache = Cache::fromJSON([], '');
+        $hash  = md5_file($file);
+        self::assertNotFalse($hash);
+        $cache->fileHash($file, $hash);
 
-        $cache->classFilterOutcome('WyriHaximus\\Foo', self::class, true);
+        self::assertSame([$file => $hash], $cache->jsonSerialize()['fileHashes']);
+        self::assertTrue($cache->fileHashMatches($file));
 
-        $expectedKey = md5('WyriHaximus\\Foo_=_' . self::class);
-        self::assertSame([$expectedKey => true], $cache->jsonSerialize()['classFilterOutcome']);
-        self::assertTrue($cache->getClassFilterOutcome('WyriHaximus\\Foo', self::class));
-        self::assertNull($cache->getClassFilterOutcome('WyriHaximus\\Foo', 'other-filter'));
+        unlink($file);
     }
 
     #[Test]
@@ -391,21 +432,13 @@ final class CacheTest extends TestCase
         $cache->setInstalledJsonHash(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cache-missing-installed.json');
         self::assertSame('', $cache->jsonSerialize()['installedJsonHash']);
 
-        $file = tempnam(sys_get_temp_dir(), 'cache-unreadable-');
-        self::assertNotFalse($file);
-        chmod($file, 0000);
+        $path = FilesystemFixtures::pathThatExistsButCannotBeReadAsFile();
 
-        set_error_handler(static fn (): bool => true);
-        try {
-            $cache->setInstalledJsonHash($file);
-        } finally {
-            restore_error_handler();
-        }
+        SuppressExpectedErrors::during(static function () use ($cache, $path): void {
+            $cache->setInstalledJsonHash($path);
+        });
 
         self::assertSame('', $cache->jsonSerialize()['installedJsonHash']);
-
-        chmod($file, 0600);
-        unlink($file);
     }
 
     #[Test]
@@ -443,6 +476,7 @@ final class CacheTest extends TestCase
         self::assertNull($cache->getClassAbsoluteFilePath(self::class));
 
         $cache->classFilePath(self::class, '');
+        self::assertSame([], $cache->jsonSerialize()['classFilePaths']);
         self::assertNull($cache->getClassAbsoluteFilePath(self::class));
     }
 
@@ -497,6 +531,9 @@ final class CacheTest extends TestCase
         self::assertSame([self::class], $cache->failedReflectionClasses());
 
         $cache->failedReflection(Item::class);
+
+        $failedReflections = new ReflectionProperty($cache, 'failedReflections');
+        self::assertSame([self::class => true, Item::class => true], $failedReflections->getValue($cache));
         self::assertTrue($cache->hasFailedReflection(Item::class));
     }
 }

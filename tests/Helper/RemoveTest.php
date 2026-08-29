@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace WyriHaximus\Tests\Composer\GenerativePluginTooling\Helper;
 
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use WyriHaximus\Composer\GenerativePluginTooling\Helper\Remove;
+use WyriHaximus\Tests\Composer\GenerativePluginTooling\Support\FilesystemFixtures;
 use WyriHaximus\TestUtilities\TestCase;
 
 use function md5_file;
@@ -42,6 +44,42 @@ final class RemoveTest extends TestCase
     }
 
     #[Test]
+    public function directoryContentsOnlyIfItExistsDoesNothingWhenMissing(): void
+    {
+        $dirName = $this->getTmpDir() . 'missing-directory-contents-only-if-it-exists';
+
+        self::assertDirectoryDoesNotExist($dirName);
+        Remove::directoryContentsOnlyIfItExists($dirName);
+        self::assertDirectoryDoesNotExist($dirName);
+    }
+
+    #[Test]
+    public function directoryContentsDoesNothingWhenMissing(): void
+    {
+        $dirName = $this->getTmpDir() . 'missing-directory-contents';
+
+        self::assertDirectoryDoesNotExist($dirName);
+        Remove::directoryContents($dirName);
+        self::assertDirectoryDoesNotExist($dirName);
+    }
+
+    #[Test]
+    public function directoryContentsThrowsWhenRmdirFails(): void
+    {
+        $parent = $this->getTmpDir() . 'rmdir-parent';
+        $child  = $parent . DIRECTORY_SEPARATOR . 'child';
+        mkdir($parent);
+        mkdir($child);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageIsOrContains('Error deleting directory: ' . $child);
+
+        FilesystemFixtures::withBlockedRmdir($parent, $child, static function () use ($parent): void {
+            Remove::directoryContents($parent);
+        });
+    }
+
+    #[Test]
     public function file(): void
     {
         $fileName = $this->getTmpDir() . md5_file(__FILE__) . '.md5';
@@ -49,5 +87,27 @@ final class RemoveTest extends TestCase
         self::assertFileExists($fileName);
         Remove::fileOnlyIfItExists($fileName);
         self::assertFileDoesNotExist($fileName);
+    }
+
+    #[Test]
+    public function fileOnlyIfItExistsDoesNothingWhenMissing(): void
+    {
+        $fileName = $this->getTmpDir() . 'missing-file-only-if-it-exists';
+
+        self::assertFileDoesNotExist($fileName);
+        Remove::fileOnlyIfItExists($fileName);
+        self::assertFileDoesNotExist($fileName);
+    }
+
+    #[Test]
+    public function fileThrowsWhenUnlinkFails(): void
+    {
+        $fileName = $this->getTmpDir() . 'directory-as-file-for-unlink';
+        mkdir($fileName);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageIsOrContains('Error deleting file: ' . $fileName);
+
+        Remove::file($fileName);
     }
 }
