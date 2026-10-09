@@ -464,7 +464,6 @@ final class GenerativePluginExecutioner
     /**
      * @return callable(string): void
      *
-     * @infection-ignore-all
      */
     private static function createAutoloader(string $vendorDir, PackageInterface ...$packages): callable
     {
