@@ -75,5 +75,6 @@
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::getClassFilterOutcome::163"
             ]
         }
-    }
+    },
+    "threads": 64
 }
