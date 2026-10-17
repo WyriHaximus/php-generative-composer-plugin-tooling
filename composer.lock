@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5f7f2fe4ce681fdde8356c934ddabd65",
+    "content-hash": "78167719ec263d32cb370d3624d082f7",
     "packages": [
         {
             "name": "jetbrains/phpstorm-stubs",
@@ -52,16 +52,16 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v5.8.0",
+            "version": "v5.9.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f"
+                "reference": "9e33da9553fe7786f0962b35f4e4ecf01be89def"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
-                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/9e33da9553fe7786f0962b35f4e4ecf01be89def",
+                "reference": "9e33da9553fe7786f0962b35f4e4ecf01be89def",
                 "shasum": ""
             },
             "require": {
@@ -103,28 +103,28 @@
             ],
             "support": {
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
-                "source": "https://github.com/nikic/PHP-Parser/tree/v5.8.0"
+                "source": "https://github.com/nikic/PHP-Parser/tree/v5.9.0"
             },
-            "time": "2026-07-04T14:30:18+00:00"
+            "time": "2026-09-13T18:51:52+00:00"
         },
         {
             "name": "roave/better-reflection",
-            "version": "6.72.0",
+            "version": "6.74.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/BetterReflection.git",
-                "reference": "b34deeed26ec22233b1a776591ef45abc154a17d"
+                "reference": "76b224f120578ed156a211f04d59a5f418a2b3c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/BetterReflection/zipball/b34deeed26ec22233b1a776591ef45abc154a17d",
-                "reference": "b34deeed26ec22233b1a776591ef45abc154a17d",
+                "url": "https://api.github.com/repos/Roave/BetterReflection/zipball/76b224f120578ed156a211f04d59a5f418a2b3c0",
+                "reference": "76b224f120578ed156a211f04d59a5f418a2b3c0",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "jetbrains/phpstorm-stubs": "2026.2",
-                "nikic/php-parser": "^5.8.0",
+                "nikic/php-parser": "^5.9.0",
                 "php": "~8.4.1 || ~8.5.0"
             },
             "conflict": {
@@ -132,7 +132,7 @@
             },
             "require-dev": {
                 "phpbench/phpbench": "^1.7.0",
-                "phpunit/phpunit": "^13.2.4"
+                "phpunit/phpunit": "^13.4.3"
             },
             "suggest": {
                 "composer/composer": "Required to use the ComposerSourceLocator"
@@ -172,9 +172,9 @@
             "description": "Better Reflection - an improved code reflection API",
             "support": {
                 "issues": "https://github.com/Roave/BetterReflection/issues",
-                "source": "https://github.com/Roave/BetterReflection/tree/6.72.0"
+                "source": "https://github.com/Roave/BetterReflection/tree/6.74.0"
             },
-            "time": "2026-07-22T18:50:32+00:00"
+            "time": "2026-10-16T22:44:45+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
