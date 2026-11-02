@@ -19,7 +19,24 @@
         "@default": true,
         "ArrayItemRemoval": {
             "ignore": [
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilterOutcomeKey::179"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilterOutcomeKey::179",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Helper\\ItemSerializer::unserialize::30"
+            ]
+        },
+        "ArrayOneItem": {
+            "ignore": [
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache\\ClassFilterFileContentHash::collect::64",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache\\ClassFilterFileContentHash::collect::70"
+            ]
+        },
+        "Concat": {
+            "ignore": [
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Helper\\ErrorExceptionFactory::create::18"
+            ]
+        },
+        "FunctionCallRemoval": {
+            "ignore": [
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache\\ClassFilterFileContentHash::hash::32"
             ]
         },
         "FalseValue": {
@@ -33,6 +50,16 @@
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205"
             ]
         },
+        "LogicalAnd": {
+            "ignore": [
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::ksortStringKeys::320"
+            ]
+        },
+        "LogicalAndSingleSubExprNegation": {
+            "ignore": [
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache\\ClassFilterFileContentHash::collect::46"
+            ]
+        },
         "LogicalNot": {
             "ignore": [
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::classFilePath::205",
@@ -41,7 +68,8 @@
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::failedReflection::185",
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::fileHash::135",
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::getClassAbsoluteFilePath::215",
-                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasCollectedItemsForClass::267"
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::hasCollectedItemsForClass::267",
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Filter\\Operators\\Class\\LogicalNot::__invoke::19"
             ]
         },
         "LogicalOrAllSubExprNegation": {
@@ -74,6 +102,12 @@
             "ignore": [
                 "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::getClassFilterOutcome::163"
             ]
+        },
+        "TrueValue": {
+            "ignore": [
+                "WyriHaximus\\Composer\\GenerativePluginTooling\\Cache::fromJSON::96"
+            ]
         }
-    }
+    },
+    "threads": 64
 }

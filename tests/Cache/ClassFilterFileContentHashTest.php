@@ -44,4 +44,35 @@ final class ClassFilterFileContentHashTest extends TestCase
         self::assertNotSame('', $hash);
         self::assertSame($hash, ClassFilterFileContentHash::hash($filters));
     }
+
+    #[Test]
+    public function hashIsDeterministicRegardlessOfFilterOrder(): void
+    {
+        $hashA = ClassFilterFileContentHash::hash([
+            new ImplementsInterface(Worker::class),
+            new ImplementsInterface(Action::class),
+        ]);
+
+        $hashB = ClassFilterFileContentHash::hash([
+            new ImplementsInterface(Action::class),
+            new ImplementsInterface(Worker::class),
+        ]);
+
+        self::assertSame($hashA, $hashB);
+    }
+
+    #[Test]
+    public function hashWithNonClassFilterPropertyAndAnotherFilter(): void
+    {
+        $hash = ClassFilterFileContentHash::hash([
+            new ImplementsInterface(Worker::class),
+            new ClassFilterWithNonClassFilterProperty('not-a-class-filter'),
+        ]);
+
+        self::assertNotSame('', $hash);
+        self::assertSame($hash, ClassFilterFileContentHash::hash([
+            new ImplementsInterface(Worker::class),
+            new ClassFilterWithNonClassFilterProperty('not-a-class-filter'),
+        ]));
+    }
 }

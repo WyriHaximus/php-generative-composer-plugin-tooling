@@ -24,6 +24,20 @@ final class ItemSerializerTest extends TestCase
         self::assertEquals($item, ItemSerializer::unserialize(ItemSerializer::serialize($item)));
     }
 
+    #[Test]
+    public function unserializePreservesItemProperties(): void
+    {
+        $item   = new Item('MyEvent', self::class, 'handle', true, false);
+        $result = ItemSerializer::unserialize(ItemSerializer::serialize($item));
+
+        self::assertInstanceOf(Item::class, $result);
+        self::assertSame('MyEvent', $result->event);
+        self::assertSame(self::class, $result->class);
+        self::assertSame('handle', $result->method);
+        self::assertTrue($result->static);
+        self::assertFalse($result->async);
+    }
+
     /** @return iterable<string, array{string, string}> */
     public static function invalidPayloads(): iterable
     {

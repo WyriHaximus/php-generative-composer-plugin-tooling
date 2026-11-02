@@ -31,6 +31,7 @@ final class ErrorExceptionFactoryTest extends TestCase
 
         $exception = ErrorExceptionFactory::create('Something went wrong');
 
-        self::assertStringStartsWith('Something went wrong with error: ', $exception->getMessage());
+        self::assertStringContainsString('with error: ', $exception->getMessage());
+        self::assertStringContainsString('does-not-exist', $exception->getMessage());
     }
 }
