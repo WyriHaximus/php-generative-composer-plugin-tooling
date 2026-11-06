@@ -80,6 +80,21 @@ final class CacheTest extends TestCase
     }
 
     #[Test]
+    public function fromJSONPreservesPopulatedState(): void
+    {
+        $cache = Cache::fromJSON([
+            'fileHashes' => ['some-file.php' => 'abc123'],
+            'collectedItems' => ['plugin/name' => [self::class => [Collector::class => ['item-1', 'item-2']]]],
+            'classFilePaths' => [self::class => 'path/to/class.php'],
+        ], '');
+
+        self::assertTrue($cache->isEnabled());
+        self::assertSame(['some-file.php' => 'abc123'], $cache->jsonSerialize()['fileHashes']);
+        self::assertSame(['item-1', 'item-2'], $cache->getCollectedItems('plugin/name', self::class, Collector::class));
+        self::assertSame('path' . DIRECTORY_SEPARATOR . 'to' . DIRECTORY_SEPARATOR . 'class.php', $cache->getClassAbsoluteFilePath(self::class));
+    }
+
+    #[Test]
     public function disabledCacheIgnoresPopulatedState(): void
     {
         $file = tempnam(sys_get_temp_dir(), 'cache-disabled-state-');

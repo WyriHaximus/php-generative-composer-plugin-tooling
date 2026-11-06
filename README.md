@@ -5,7 +5,6 @@ Tooling for creating generative Composer Plugins
 ![Continuous Integration](https://github.com/wyrihaximus/php-generative-composer-plugin-tooling/workflows/Continuous%20Integration/badge.svg)
 [![Latest Stable Version](https://poser.pugx.org/wyrihaximus/generative-composer-plugin-tooling/v/stable.png)](https://packagist.org/packages/wyrihaximus/generative-composer-plugin-tooling)
 [![Total Downloads](https://poser.pugx.org/wyrihaximus/generative-composer-plugin-tooling/downloads.png)](https://packagist.org/packages/wyrihaximus/generative-composer-plugin-tooling/stats)
-[![Type Coverage](https://shepherd.dev/github/WyriHaximus/php-generative-composer-plugin-tooling/coverage.svg)](https://shepherd.dev/github/WyriHaximus/php-generative-composer-plugin-tooling)
 [![License](https://poser.pugx.org/wyrihaximus/generative-composer-plugin-tooling/license.png)](https://packagist.org/packages/wyrihaximus/generative-composer-plugin-tooling)
 
 The main goal of this package is to take the repetitive annoying parts composer plugins that generate code out of hands.
@@ -208,9 +207,9 @@ final readonly class Item implements ItemContract, JsonSerializable
 }
 ```
 
-The collector takes a reflection class and figures out if it can be used. The filters used by the plugin makes sure we
-only get classes implementing a certain marker interface. So from there we filter out only classes that have methods
-with a single argument that is an object and consider that an event. So if it's just
+The collector takes a reflection class and figures out if it can be used. The filters used by the plugin make sure we
+only get classes implementing a certain marker interface. From there we filter out only classes that have methods
+with a single argument that is an object and consider that an event. If it is just
 `public function (ObjectA $event): void` that will be one item, but if it's
 `public function (ObjectA|ObjectB $event): void` that will be two items. One for each possible event that might be
 dispatched:
@@ -290,7 +289,7 @@ final class Collector implements ItemCollector
 
 Only consider packages that have an item in its `composer.json` with a specific value.
 
-So with the following arguments:
+With the following arguments:
 
 ```php
 new ComposerJsonHasItemWithSpecificValue('wyrihaximus.broadcast.has-listeners', true)
@@ -312,9 +311,9 @@ Only packages with this in their `composer.json` are considered:
 
 ### ComposerJsonRequiresSpecificPackage
 
-Only consider packages that require a specific package in it's `composer.json`.
+Only consider packages that require a specific package in its `composer.json`.
 
-So with the following arguments:
+With the following arguments:
 
 ```php
 new ComposerJsonRequiresSpecificPackage('wyrihaximus/simple-twig', PackageType::PRODUCTION)
@@ -360,7 +359,7 @@ yield from LogicalOr::create(
 In this situation we want to get all classes that either implement the `Vhost` interface, or that are instantiable and
 have the `Vhost` and `Route` attributes. Operator filters accept both class and package filters, you can mix and match
 them anyway you like. But as shown in the example above that return iterators, and internally they split them up in a
-operator with only the package filters in them and one with only the class filters in them. So be sure to double check
+operator with only the package filters in them and one with only the class filters in them. Double check
 what you are getting in the collector and compiler.
 
 ### Logical operators
@@ -389,8 +388,8 @@ file_put_contents($installPathList, $classContentsList); /** @phpstan-ignore-lin
 chmod($installPathList, 0664);
 ```
 
-And honestly it made the code a lot less readable, especially when you have 4 in a row + a hydrator generating. So
-taking that and putting it into the `TwigFIle` helper made the code a lot more readable:
+And honestly it made the code a lot less readable, especially when you have 4 in a row + a hydrator generating.
+Taking that and putting it into the `TwigFIle` helper made the code a lot more readable:
 
 ```php
 TwigFile::render(
@@ -434,7 +433,7 @@ The following constants are available:
 * `LATE`
 * `LAST`
 
-There are two additional constants available that should be used with more care and as little as possible. They run
+Two additional constants are available that should be used with more care and as little as possible. They run
 before and after everything else. Broadcast does this as it has to pick up any generated code from others that might
 have generated listeners.
 
@@ -473,10 +472,10 @@ This package registers its own Composer plugin (`WyriHaximus\Composer\Generative
 
 When the cache is enabled, `GenerativePluginExecutioner` reuses cached data where possible:
 
-* **File hashes** — skip work for unchanged source files
-* **Class filter outcomes** — skip re-running filters when a class file has not changed
-* **Failed reflections** — skip re-reflecting classes that failed before
-* **Collected items** — skip re-running collectors when a class file has not changed
+* **File hashes**: skip work for unchanged source files
+* **Class filter outcomes**: skip re-running filters when a class file has not changed
+* **Failed reflections**: skip re-reflecting classes that failed before
+* **Collected items**: skip re-running collectors when a class file has not changed
 
 When the cache is not configured, everything behaves as before with no overhead.
 
@@ -498,7 +497,7 @@ On the first run with caching enabled, the cache is built as usual. Later runs o
 - [X] Helper to write files
 - [X] Helper empty directories (I put all my generated files in `src/Generated`)
 - [X] Helper that provides pre-defined priority constants
-- [X] Create parent directories for written files that don't exist yet
+- [X] Parent directories for written files are created automatically when they don't exist yet
 - [X] Support filtering on the attributes a class has
 - [ ] Support filtering on the attributes a method in a has
 - [X] Operator filters
