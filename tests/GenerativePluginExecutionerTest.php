@@ -7,6 +7,7 @@ namespace WyriHaximus\Tests\Composer\GenerativePluginTooling;
 use Composer\Composer;
 use Composer\Config;
 use Composer\Factory;
+use Composer\Installer;
 use Composer\Package\CompletePackage;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackage;
@@ -473,6 +474,40 @@ final class GenerativePluginExecutionerTest extends TestCase
 
         // Class should still be loaded
         self::assertTrue(class_exists('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped', false));
+    }
+
+    #[Test]
+    public function createAutoloaderSkipsComposerNamespaceClasses(): void
+    {
+        $vendorDir = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'vendor';
+        $srcDir    = $vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'src';
+        mkdir($srcDir, 0o755, true);
+        file_put_contents(
+            $srcDir . DIRECTORY_SEPARATOR . 'Installer.php',
+            "<?php\n\nnamespace Composer;\n\nfinal class Installer {}\n",
+        );
+        file_put_contents(
+            $srcDir . DIRECTORY_SEPARATOR . 'Util.php',
+            "<?php\n\nnamespace Composer\\Util;\n\nfinal class Util {}\n",
+        );
+
+        $package = new CompletePackage('composer/composer', '1.0.0.0', '1.0.0');
+        $package->setAutoload([
+            'psr-4' => ['Composer\\' => 'src/'],
+        ]);
+
+        $autoloader = $this->invoke('createAutoloader', $vendorDir, $package);
+        self::assertIsCallable($autoloader);
+
+        // The autoloader should skip the Composer namespace entirely
+        $autoloader('Composer');
+        $autoloader(Installer::class);
+        $autoloader('Composer\\Util\\Util');
+        $autoloader('Composer\\Deep\\Nested\\Class');
+
+        // None of the Composer classes should be loaded
+        self::assertFalse(class_exists(Installer::class, false));
+        self::assertFalse(class_exists('Composer\\Util\\Util', false));
     }
 
     #[Test]
