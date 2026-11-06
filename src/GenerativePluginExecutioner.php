@@ -473,7 +473,13 @@ final class GenerativePluginExecutioner
      */
     private static function createAutoloader(string $vendorDir, PackageInterface ...$packages): callable
     {
-        return static function (string $class) use ($vendorDir, $packages): void {
+        return static function (string $class) use ($vendorDir, $packages): void {            // Never load Composer's own namespace from vendor to avoid
+            // redeclaration conflicts with Composer's PHAR classes
+            // See: https://github.com/composer/composer/issues/264
+            if ($class === 'Composer' || str_starts_with($class, 'Composer\\')) {
+                return;
+            }
+
             if (!str_contains($class, '\\')) {
                 return;
             }
