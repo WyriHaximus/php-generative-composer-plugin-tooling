@@ -429,6 +429,36 @@ final class GenerativePluginExecutionerTest extends TestCase
     }
 
     #[Test]
+    public function createAutoloaderSkipsAlreadyLoadedClass(): void
+    {
+        $vendorDir = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'vendor';
+        $srcDir    = $vendorDir . DIRECTORY_SEPARATOR . 'wyrihaximus' . DIRECTORY_SEPARATOR . 'simple-twig' . DIRECTORY_SEPARATOR . 'src';
+        mkdir($srcDir, 0o755, true);
+        file_put_contents(
+            $srcDir . DIRECTORY_SEPARATOR . 'AutoloadProbeSkipped.php',
+            "<?php\n\nnamespace WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs;\n\nfinal class AutoloadProbeSkipped {}\n",
+        );
+
+        // Pre-load the class so it exists in memory before the autoloader runs
+        require_once $srcDir . DIRECTORY_SEPARATOR . 'AutoloadProbeSkipped.php';
+        self::assertTrue(class_exists('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped', false));
+
+        $package = new CompletePackage('wyrihaximus/simple-twig', '1.0.0.0', '1.0.0');
+        $package->setAutoload([
+            'psr-4' => ['WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\' => 'src/'],
+        ]);
+
+        $autoloader = $this->invoke('createAutoloader', $vendorDir, $package);
+        self::assertIsCallable($autoloader);
+
+        // Calling the autoloader for an already-loaded class should skip require_once
+        $autoloader('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped');
+
+        // Class should still be loaded
+        self::assertTrue(class_exists('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped', false));
+    }
+
+    #[Test]
     public function createClassReflectorCreatesMissingAutoloadDirectory(): void
     {
         $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'app';

@@ -496,6 +496,10 @@ final class GenerativePluginExecutioner
                             continue;
                         }
 
+                        if (class_exists($class, false) || interface_exists($class, false) || trait_exists($class, false)) {
+                            continue;
+                        }
+
                         require_once $possibleFilePath;
                     }
                 }
