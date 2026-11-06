@@ -305,6 +305,23 @@ final class GenerativePluginExecutionerTest extends TestCase
     }
 
     #[Test]
+    public function autoloadablePackagesSkipsComposerComposer(): void
+    {
+        $composer = new CompletePackage('composer/composer', '1.0.0.0', '1.0.0');
+        $composer->setAutoload(['psr-4' => ['Composer\\' => 'src/']]);
+        $ok = new CompletePackage('vendor/ok', '1.0.0.0', '1.0.0');
+        $ok->setAutoload(['psr-4' => ['Vendor\\Ok\\' => 'src/']]);
+
+        $packages = $this->invoke('autoloadablePackages', $composer, $ok);
+        self::assertIsIterable($packages);
+
+        self::assertSame(
+            ['vendor/ok'],
+            array_keys(iterator_to_array($packages, true)),
+        );
+    }
+
+    #[Test]
     public function autoloadPathsCoversVendorPsr4ClassmapAndEdgeCases(): void
     {
         $vendorDir = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'vendor';

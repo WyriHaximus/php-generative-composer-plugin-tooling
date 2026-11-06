@@ -187,6 +187,12 @@ final class GenerativePluginExecutioner
     private static function autoloadablePackages(PackageInterface ...$packages): iterable
     {
         foreach ($packages as $package) {
+            // Skip composer/composer to avoid loading Composer's internal classes
+            // from vendor, which would conflict with Composer's PHAR classes
+            if ($package->getName() === 'composer/composer') {
+                continue;
+            }
+
             if (count($package->getAutoload()) === 0) {
                 continue;
             }
