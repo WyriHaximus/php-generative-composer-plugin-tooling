@@ -491,7 +491,7 @@ On the first run with caching enabled, the cache is built as usual. Later runs o
 # Todo
 
 - [X] Port boring bits from [`wyrihaximus/broadcast`](https://github.com/wyrihaximus/php-broadcast) for use in other packages
-- [X] Build-in autoloader (sadly)
+- [X] ~~Build-in autoloader (sadly)~~ (removed 🎉)
 - [X] No userland functions anywhere (can't do that due to composer autoloader)
 - [X] Helper to render twig files and write them out
 - [X] Helper to write files
