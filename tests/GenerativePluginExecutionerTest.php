@@ -7,7 +7,6 @@ namespace WyriHaximus\Tests\Composer\GenerativePluginTooling;
 use Composer\Composer;
 use Composer\Config;
 use Composer\Factory;
-use Composer\Installer;
 use Composer\Package\CompletePackage;
 use Composer\Package\PackageInterface;
 use Composer\Package\RootPackage;
@@ -40,7 +39,6 @@ use WyriHaximus\Tests\Composer\GenerativePluginTooling\Support\SuppressExpectedE
 use WyriHaximus\TestUtilities\TestCase;
 
 use function array_keys;
-use function class_exists;
 use function count;
 use function dirname;
 use function file_exists;
@@ -411,103 +409,6 @@ final class GenerativePluginExecutionerTest extends TestCase
 
         self::assertCount(1, $packages);
         self::assertSame('wyrihaximus/makefiles', $packages[0]->getName());
-    }
-
-    #[Test]
-    public function createAutoloaderLoadsMatchingPsr4Class(): void
-    {
-        $vendorDir = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'vendor';
-        $srcDir    = $vendorDir . DIRECTORY_SEPARATOR . 'wyrihaximus' . DIRECTORY_SEPARATOR . 'simple-twig' . DIRECTORY_SEPARATOR . 'src';
-        mkdir($srcDir, 0o755, true);
-        file_put_contents(
-            $srcDir . DIRECTORY_SEPARATOR . 'AutoloadProbe.php',
-            "<?php\n\nnamespace WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs;\n\nfinal class AutoloadProbe {}\n",
-        );
-
-        $package = new CompletePackage('wyrihaximus/simple-twig', '1.0.0.0', '1.0.0');
-        $package->setAutoload([
-            'psr-4' => [
-                'WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\' => 'src/',
-                'Other\\' => ['lib/', 'src/'],
-            ],
-            'classmap' => ['ignored.php'],
-        ]);
-        $noPsr4 = new CompletePackage('vendor/classmap-only', '1.0.0.0', '1.0.0');
-        $noPsr4->setAutoload(['classmap' => ['src/']]);
-
-        $autoloader = $this->invoke('createAutoloader', $vendorDir, $noPsr4, $package);
-        self::assertIsCallable($autoloader);
-
-        $autoloader('NoNamespace');
-        $autoloader('Other\\Missing');
-        $autoloader('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\Missing');
-        $autoloader('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbe');
-
-        self::assertTrue(class_exists('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbe', false));
-    }
-
-    #[Test]
-    public function createAutoloaderSkipsAlreadyLoadedClass(): void
-    {
-        $vendorDir = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'vendor';
-        $srcDir    = $vendorDir . DIRECTORY_SEPARATOR . 'wyrihaximus' . DIRECTORY_SEPARATOR . 'simple-twig' . DIRECTORY_SEPARATOR . 'src';
-        mkdir($srcDir, 0o755, true);
-        file_put_contents(
-            $srcDir . DIRECTORY_SEPARATOR . 'AutoloadProbeSkipped.php',
-            "<?php\n\nnamespace WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs;\n\nfinal class AutoloadProbeSkipped {}\n",
-        );
-
-        // Pre-load the class so it exists in memory before the autoloader runs
-        require_once $srcDir . DIRECTORY_SEPARATOR . 'AutoloadProbeSkipped.php';
-        self::assertTrue(class_exists('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped', false));
-
-        $package = new CompletePackage('wyrihaximus/simple-twig', '1.0.0.0', '1.0.0');
-        $package->setAutoload([
-            'psr-4' => ['WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\' => 'src/'],
-        ]);
-
-        $autoloader = $this->invoke('createAutoloader', $vendorDir, $package);
-        self::assertIsCallable($autoloader);
-
-        // Calling the autoloader for an already-loaded class should skip require_once
-        $autoloader('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped');
-
-        // Class should still be loaded
-        self::assertTrue(class_exists('WyriHaximus\\Tests\\Composer\\GenerativePluginTooling\\AutoloadProbeNs\\AutoloadProbeSkipped', false));
-    }
-
-    #[Test]
-    public function createAutoloaderSkipsComposerNamespaceClasses(): void
-    {
-        $vendorDir = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'vendor';
-        $srcDir    = $vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'src';
-        mkdir($srcDir, 0o755, true);
-        file_put_contents(
-            $srcDir . DIRECTORY_SEPARATOR . 'Installer.php',
-            "<?php\n\nnamespace Composer;\n\nfinal class Installer {}\n",
-        );
-        file_put_contents(
-            $srcDir . DIRECTORY_SEPARATOR . 'Util.php',
-            "<?php\n\nnamespace Composer\\Util;\n\nfinal class Util {}\n",
-        );
-
-        $package = new CompletePackage('composer/composer', '1.0.0.0', '1.0.0');
-        $package->setAutoload([
-            'psr-4' => ['Composer\\' => 'src/'],
-        ]);
-
-        $autoloader = $this->invoke('createAutoloader', $vendorDir, $package);
-        self::assertIsCallable($autoloader);
-
-        // The autoloader should skip the Composer namespace entirely
-        $autoloader('Composer');
-        $autoloader(Installer::class);
-        $autoloader('Composer\\Util\\Util');
-        $autoloader('Composer\\Deep\\Nested\\Class');
-
-        // None of the Composer classes should be loaded
-        self::assertFalse(class_exists(Installer::class, false));
-        self::assertFalse(class_exists('Composer\\Util\\Util', false));
     }
 
     #[Test]

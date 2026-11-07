@@ -48,13 +48,9 @@ use function preg_match;
 use function round;
 use function rtrim;
 use function serialize;
-use function spl_autoload_register;
-use function spl_autoload_unregister;
 use function sprintf;
 use function str_replace;
 use function str_starts_with;
-use function strlen;
-use function substr;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -94,10 +90,7 @@ final class GenerativePluginExecutioner
             ),
         ];
 
-        $autoloader = self::createAutoloader($vendorDir, ...$unfilteredPackages);
-        spl_autoload_register($autoloader);
-
-        $packages =  [];
+        $packages = [];
         foreach ($unfilteredPackages as $package) {
             foreach ($packageFilters as $packageFilter) {
                 if (! $packageFilter($package)) {
@@ -158,8 +151,6 @@ final class GenerativePluginExecutioner
         $plugin->compile(self::locateRootPackageInstallPath($plugin, $composer->getConfig(), $composer->getPackage()), ...$items);
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . sprintf($plugin::log(LogStages::Completion), round(microtime(true) - $start, 2)));
-
-        spl_autoload_unregister($autoloader);
     }
 
     /**
@@ -465,57 +456,6 @@ final class GenerativePluginExecutioner
         }
 
         return $vendorDir;
-    }
-
-    /**
-     * @return callable(string): void
-     *
-     */
-    private static function createAutoloader(string $vendorDir, PackageInterface ...$packages): callable
-    {
-        return static function (string $class) use ($vendorDir, $packages): void {            // Never load Composer's own namespace from vendor to avoid
-            // redeclaration conflicts with Composer's PHAR classes
-            // See: https://github.com/composer/composer/issues/264
-            if ($class === 'Composer' || str_starts_with($class, 'Composer\\')) {
-                return;
-            }
-
-            if (!str_contains($class, '\\')) {
-                return;
-            }
-
-            foreach ($packages as $package) {
-                $autoload = $package->getAutoload();
-                if (! array_key_exists('psr-4', $autoload)) {
-                    continue;
-                }
-
-                foreach ($autoload['psr-4'] as $namespace => $paths) {
-                    foreach (is_array($paths) ? $paths : [$paths] as $path) {
-                        if (! str_starts_with($class, $namespace)) {
-                            continue;
-                        }
-
-                        $possibleFilePath  = $vendorDir . DIRECTORY_SEPARATOR;
-                        $possibleFilePath .= $package->getName() . DIRECTORY_SEPARATOR;
-                        $possibleFilePath .= $path;
-                        $possibleFilePath .= substr($class, strlen($namespace));
-                        $possibleFilePath .= '.php';
-                        $possibleFilePath  = self::normalizePath($possibleFilePath);
-
-                        if (! file_exists($possibleFilePath)) {
-                            continue;
-                        }
-
-                        if (class_exists($class, false) || interface_exists($class, false) || trait_exists($class, false)) {
-                            continue;
-                        }
-
-                        require_once $possibleFilePath;
-                    }
-                }
-            }
-        };
     }
 
     /**
