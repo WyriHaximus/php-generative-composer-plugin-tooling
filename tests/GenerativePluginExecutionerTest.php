@@ -45,6 +45,7 @@ use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
 use function is_dir;
+use function is_file;
 use function is_iterable;
 use function iterator_to_array;
 use function json_decode;
@@ -513,7 +514,7 @@ final class GenerativePluginExecutionerTest extends TestCase
     }
 
     #[Test]
-    public function createClassReflectorRethrowsWhenAutoloadPathIsAFile(): void
+    public function createClassReflectorRemovesFileAndCreatesDirectory(): void
     {
         $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'app-file-autoload';
         $vendorDir = $root . DIRECTORY_SEPARATOR . 'vendor';
@@ -529,8 +530,13 @@ final class GenerativePluginExecutionerTest extends TestCase
         ]));
         file_put_contents($root . DIRECTORY_SEPARATOR . 'not-a-directory', 'file');
 
-        $this->expectException(InvalidPrefixMapping::class);
-        $this->invoke('createClassReflector', $vendorDir);
+        self::assertTrue(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory'));
+        self::assertFalse(is_dir($root . DIRECTORY_SEPARATOR . 'not-a-directory'));
+
+        $reflector = $this->invoke('createClassReflector', $vendorDir);
+        self::assertNotNull($reflector);
+        self::assertFalse(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory'));
+        self::assertTrue(is_dir($root . DIRECTORY_SEPARATOR . 'not-a-directory'));
     }
 
     #[Test]
@@ -549,6 +555,63 @@ final class GenerativePluginExecutionerTest extends TestCase
     {
         $this->expectException(InvalidPrefixMapping::class);
         $this->invoke('missingAutoloadDirectoryFromException', InvalidPrefixMapping::emptyPrefixGiven());
+    }
+
+    #[Test]
+    public function createClassReflectorRemovesMultipleFilesAndCreatesDirectories(): void
+    {
+        $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'app-multiple-file-autoload';
+        $vendorDir = $root . DIRECTORY_SEPARATOR . 'vendor';
+        mkdir($vendorDir . DIRECTORY_SEPARATOR . 'composer', 0o755, true);
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'composer.json', json_encode([
+            'name' => 'wyrihaximus/makefiles',
+            'autoload' => [
+                'psr-4' => [
+                    'Missing\\Ns\\One\\' => 'not-a-directory-one',
+                    'Missing\\Ns\\Two\\' => 'not-a-directory-two',
+                ],
+            ],
+        ]));
+        file_put_contents($vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'installed.json', json_encode([
+            'packages' => [],
+            'dev' => true,
+            'dev-package-names' => [],
+        ]));
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'not-a-directory-one', 'file1');
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'not-a-directory-two', 'file2');
+
+        self::assertTrue(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory-one'));
+        self::assertTrue(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory-two'));
+
+        $reflector = $this->invoke('createClassReflector', $vendorDir);
+        self::assertNotNull($reflector);
+        self::assertFalse(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory-one'));
+        self::assertTrue(is_dir($root . DIRECTORY_SEPARATOR . 'not-a-directory-one'));
+        self::assertFalse(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory-two'));
+        self::assertTrue(is_dir($root . DIRECTORY_SEPARATOR . 'not-a-directory-two'));
+    }
+
+    #[Test]
+    public function createClassReflectorRethrowsWhenRegexDoesNotMatch(): void
+    {
+        $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'app-unrecognized-error';
+        $vendorDir = $root . DIRECTORY_SEPARATOR . 'vendor';
+        mkdir($vendorDir . DIRECTORY_SEPARATOR . 'composer', 0o755, true);
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'composer.json', json_encode([
+            'name' => 'wyrihaximus/makefiles',
+            'autoload' => ['psr-4' => ['' => 'src/']],
+        ]));
+        mkdir($root . DIRECTORY_SEPARATOR . 'src', 0o755, true);
+        file_put_contents($vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'installed.json', json_encode([
+            'packages' => [],
+            'dev' => true,
+            'dev-package-names' => [],
+        ]));
+
+        $this->expectException(InvalidPrefixMapping::class);
+        $this->expectExceptionMessageIsOrContains('An invalid empty string provided as a PSR mapping prefix');
+
+        $this->invoke('createClassReflector', $vendorDir);
     }
 
     #[Test]
