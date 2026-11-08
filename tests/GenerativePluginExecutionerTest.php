@@ -45,6 +45,7 @@ use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
 use function is_dir;
+use function is_file;
 use function is_iterable;
 use function iterator_to_array;
 use function json_decode;
@@ -529,6 +530,8 @@ final class GenerativePluginExecutionerTest extends TestCase
         ]));
         file_put_contents($root . DIRECTORY_SEPARATOR . 'not-a-directory', 'file');
 
+        self::assertTrue(is_file($root . DIRECTORY_SEPARATOR . 'not-a-directory'));
+
         $this->expectException(InvalidPrefixMapping::class);
         $this->invoke('createClassReflector', $vendorDir);
     }
@@ -549,6 +552,29 @@ final class GenerativePluginExecutionerTest extends TestCase
     {
         $this->expectException(InvalidPrefixMapping::class);
         $this->invoke('missingAutoloadDirectoryFromException', InvalidPrefixMapping::emptyPrefixGiven());
+    }
+
+    #[Test]
+    public function createClassReflectorRethrowsWhenRegexDoesNotMatch(): void
+    {
+        $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'app-unrecognized-error';
+        $vendorDir = $root . DIRECTORY_SEPARATOR . 'vendor';
+        mkdir($vendorDir . DIRECTORY_SEPARATOR . 'composer', 0o755, true);
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'composer.json', json_encode([
+            'name' => 'wyrihaximus/makefiles',
+            'autoload' => ['psr-4' => ['' => 'src/']],
+        ]));
+        mkdir($root . DIRECTORY_SEPARATOR . 'src', 0o755, true);
+        file_put_contents($vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'installed.json', json_encode([
+            'packages' => [],
+            'dev' => true,
+            'dev-package-names' => [],
+        ]));
+
+        $this->expectException(InvalidPrefixMapping::class);
+        $this->expectExceptionMessageIsOrContains('An invalid empty string provided as a PSR mapping prefix');
+
+        $this->invoke('createClassReflector', $vendorDir);
     }
 
     #[Test]

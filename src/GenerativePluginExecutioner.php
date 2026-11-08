@@ -412,15 +412,20 @@ final class GenerativePluginExecutioner
             return ClassReflectorStore::get($vendorDir);
         }
 
-        try {
-            return self::buildClassReflector($vendorDir);
-        } catch (InvalidPrefixMapping $invalidPrefixMapping) {
-            $path = self::missingAutoloadDirectoryFromException($invalidPrefixMapping);
-            if (! file_exists($path)) {
-                mkdir($path, recursive: true);
-            }
+        while (true) {
+            try {
+                return self::buildClassReflector($vendorDir);
+            } catch (InvalidPrefixMapping $invalidPrefixMapping) {
+                $path = self::missingAutoloadDirectoryFromException($invalidPrefixMapping);
 
-            return self::buildClassReflector($vendorDir);
+                if (is_file($path)) {
+                    throw $invalidPrefixMapping;
+                }
+
+                if (! is_dir($path)) {
+                    mkdir($path, recursive: true);
+                }
+            }
         }
     }
 
