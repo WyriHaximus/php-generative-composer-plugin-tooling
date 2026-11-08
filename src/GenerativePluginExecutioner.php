@@ -26,6 +26,7 @@ use WyriHaximus\Composer\GenerativePluginTooling\Composer\ASTLocatorStore;
 use WyriHaximus\Composer\GenerativePluginTooling\Helper\ItemSerializer;
 use WyriHaximus\Lister;
 
+use function array_filter;
 use function array_key_exists;
 use function array_map;
 use function array_values;
@@ -34,6 +35,7 @@ use function count;
 use function dirname;
 use function file_exists;
 use function file_get_contents;
+use function file_put_contents;
 use function is_array;
 use function is_dir;
 use function is_file;
@@ -48,13 +50,9 @@ use function preg_match;
 use function round;
 use function rtrim;
 use function serialize;
-use function spl_autoload_register;
-use function spl_autoload_unregister;
 use function sprintf;
 use function str_replace;
 use function str_starts_with;
-use function strlen;
-use function substr;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -94,10 +92,7 @@ final class GenerativePluginExecutioner
             ),
         ];
 
-        $autoloader = self::createAutoloader($vendorDir, ...$unfilteredPackages);
-        spl_autoload_register($autoloader);
-
-        $packages =  [];
+        $packages = [];
         foreach ($unfilteredPackages as $package) {
             foreach ($packageFilters as $packageFilter) {
                 if (! $packageFilter($package)) {
@@ -158,8 +153,6 @@ final class GenerativePluginExecutioner
         $plugin->compile(self::locateRootPackageInstallPath($plugin, $composer->getConfig(), $composer->getPackage()), ...$items);
 
         $io->write('<info>' . $plugin::name() . ':</info> ' . sprintf($plugin::log(LogStages::Completion), round(microtime(true) - $start, 2)));
-
-        spl_autoload_unregister($autoloader);
     }
 
     /**
@@ -434,9 +427,39 @@ final class GenerativePluginExecutioner
     /** @param non-empty-string $vendorDir */
     private static function buildClassReflector(string $vendorDir): DefaultReflector
     {
-        $reflector = new DefaultReflector(
-            (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), ASTLocatorStore::ASTLocator()),
-        );
+        $installedJsonPath = $vendorDir . '/composer/installed.json';
+        $originalContent   = null;
+
+        if (is_file($installedJsonPath)) {
+            $originalContent = file_get_contents($installedJsonPath);
+            assert(is_string($originalContent));
+
+            $decoded = json_decode($originalContent, true);
+            if (! is_array($decoded)) {
+                $decoded = ['packages' => [], 'dev' => true, 'dev-package-names' => []];
+                file_put_contents($installedJsonPath, json_encode($decoded, JSON_THROW_ON_ERROR));
+            } elseif (array_key_exists('packages', $decoded) && is_array($decoded['packages'])) {
+                $filtered = array_values(array_filter(
+                    $decoded['packages'],
+                    static fn (mixed $package): bool => (is_array($package) ? ($package['name'] ?? '') : '') !== 'composer/composer',
+                ));
+
+                if ($filtered !== $decoded['packages']) {
+                    $decoded['packages'] = $filtered;
+                    file_put_contents($installedJsonPath, json_encode($decoded, JSON_THROW_ON_ERROR));
+                }
+            }
+        }
+
+        try {
+            $reflector = new DefaultReflector(
+                (new MakeLocatorForComposerJsonAndInstalledJson())(dirname($vendorDir), ASTLocatorStore::ASTLocator()),
+            );
+        } finally {
+            if ($originalContent !== null) {
+                file_put_contents($installedJsonPath, $originalContent);
+            }
+        }
 
         ClassReflectorStore::add($vendorDir, $reflector);
 
@@ -465,57 +488,6 @@ final class GenerativePluginExecutioner
         }
 
         return $vendorDir;
-    }
-
-    /**
-     * @return callable(string): void
-     *
-     */
-    private static function createAutoloader(string $vendorDir, PackageInterface ...$packages): callable
-    {
-        return static function (string $class) use ($vendorDir, $packages): void {            // Never load Composer's own namespace from vendor to avoid
-            // redeclaration conflicts with Composer's PHAR classes
-            // See: https://github.com/composer/composer/issues/264
-            if ($class === 'Composer' || str_starts_with($class, 'Composer\\')) {
-                return;
-            }
-
-            if (!str_contains($class, '\\')) {
-                return;
-            }
-
-            foreach ($packages as $package) {
-                $autoload = $package->getAutoload();
-                if (! array_key_exists('psr-4', $autoload)) {
-                    continue;
-                }
-
-                foreach ($autoload['psr-4'] as $namespace => $paths) {
-                    foreach (is_array($paths) ? $paths : [$paths] as $path) {
-                        if (! str_starts_with($class, $namespace)) {
-                            continue;
-                        }
-
-                        $possibleFilePath  = $vendorDir . DIRECTORY_SEPARATOR;
-                        $possibleFilePath .= $package->getName() . DIRECTORY_SEPARATOR;
-                        $possibleFilePath .= $path;
-                        $possibleFilePath .= substr($class, strlen($namespace));
-                        $possibleFilePath .= '.php';
-                        $possibleFilePath  = self::normalizePath($possibleFilePath);
-
-                        if (! file_exists($possibleFilePath)) {
-                            continue;
-                        }
-
-                        if (class_exists($class, false) || interface_exists($class, false) || trait_exists($class, false)) {
-                            continue;
-                        }
-
-                        require_once $possibleFilePath;
-                    }
-                }
-            }
-        };
     }
 
     /**
