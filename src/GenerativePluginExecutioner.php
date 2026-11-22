@@ -31,6 +31,7 @@ use function array_key_exists;
 use function array_map;
 use function array_values;
 use function assert;
+use function chr;
 use function count;
 use function dirname;
 use function file_exists;
@@ -51,6 +52,7 @@ use function round;
 use function rtrim;
 use function serialize;
 use function sprintf;
+use function str_contains;
 use function str_replace;
 use function str_starts_with;
 
@@ -209,6 +211,10 @@ final class GenerativePluginExecutioner
             foreach (self::autoloadPaths($vendorDir, $package) as $path) {
                 /** @var class-string $class */
                 foreach (self::listClassesInPaths($path) as $class) {
+                    if (str_contains($class, chr(0))) {
+                        continue;
+                    }
+
                     yield $class;
                 }
             }
