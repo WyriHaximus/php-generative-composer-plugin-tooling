@@ -39,6 +39,7 @@ use WyriHaximus\Tests\Composer\GenerativePluginTooling\Support\SuppressExpectedE
 use WyriHaximus\TestUtilities\TestCase;
 
 use function array_keys;
+use function chr;
 use function count;
 use function dirname;
 use function file_exists;
@@ -383,6 +384,66 @@ final class GenerativePluginExecutionerTest extends TestCase
             ['GenerativePluginExecutionerSingleFile'],
             [...$classes],
         );
+    }
+
+    #[Test]
+    public function listClassNamesInPackagesFiltersOutAnonymousClasses(): void
+    {
+        $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'anon';
+        $vendorDir = $root . DIRECTORY_SEPARATOR . 'vendor';
+        mkdir($vendorDir . DIRECTORY_SEPARATOR . 'composer', 0o755, true);
+        mkdir($root . DIRECTORY_SEPARATOR . 'src', 0o755, true);
+        file_put_contents($root . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'WithAnonymous.php', "<?php\n\nclass GenerativePluginExecutionerNamed {}\n\$anon = new class {};\n");
+        file_put_contents($vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'installed.json', json_encode([
+            'packages' => [],
+            'dev' => true,
+            'dev-package-names' => [],
+        ]));
+
+        $package = new RootPackage('root/app', 'dev-master', 'dev-master');
+        $package->setAutoload(['psr-4' => ['Test\\' => 'src']]);
+
+        $classes = $this->invoke('listClassNamesInPackages', $vendorDir, $package);
+        self::assertIsIterable($classes);
+
+        $classArray = [...$classes];
+
+        foreach ($classArray as $class) {
+            self::assertIsString($class);
+            self::assertStringNotContainsString(chr(0), $class, 'Anonymous classes with null bytes should be filtered out');
+        }
+
+        self::assertContains('GenerativePluginExecutionerNamed', $classArray);
+    }
+
+    #[Test]
+    public function listClassNamesInPackagesFiltersOutAnonymousClassesFromFile(): void
+    {
+        $root      = $this->getTmpDir() . DIRECTORY_SEPARATOR . 'anon-file';
+        $vendorDir = $root . DIRECTORY_SEPARATOR . 'vendor';
+        mkdir($vendorDir . DIRECTORY_SEPARATOR . 'composer', 0o755, true);
+        $file = $root . DIRECTORY_SEPARATOR . 'WithAnonymous.php';
+        file_put_contents($file, "<?php\n\nclass GenerativePluginExecutionerNamedFile {}\n\$anon = new class {};\n");
+        file_put_contents($vendorDir . DIRECTORY_SEPARATOR . 'composer' . DIRECTORY_SEPARATOR . 'installed.json', json_encode([
+            'packages' => [],
+            'dev' => true,
+            'dev-package-names' => [],
+        ]));
+
+        $package = new RootPackage('root/app', 'dev-master', 'dev-master');
+        $package->setAutoload(['classmap' => ['WithAnonymous.php']]);
+
+        $classes = $this->invoke('listClassNamesInPackages', $vendorDir, $package);
+        self::assertIsIterable($classes);
+
+        $classArray = [...$classes];
+
+        foreach ($classArray as $class) {
+            self::assertIsString($class);
+            self::assertStringNotContainsString(chr(0), $class, 'Anonymous classes with null bytes should be filtered out');
+        }
+
+        self::assertContains('GenerativePluginExecutionerNamedFile', $classArray);
     }
 
     #[Test]
